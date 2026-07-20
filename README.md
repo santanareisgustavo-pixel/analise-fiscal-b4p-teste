@@ -2,7 +2,9 @@
 
 Sistema estático de apoio à consultoria tributária da B4P, com análise documental, identificação de riscos e mapeamento de oportunidades.
 
-Esta é a **publicação v2** do sistema, correspondente à versão interna **3.2.2**.
+Esta é a **publicação v3** do sistema, correspondente à versão interna **3.3.0**.
+
+Nesta versão, o sistema inicia vazio e não inclui documentos, valores ou controles de demonstração. Todos os indicadores passam a refletir exclusivamente os arquivos efetivamente importados pelo usuário.
 
 ## O que o sistema faz
 

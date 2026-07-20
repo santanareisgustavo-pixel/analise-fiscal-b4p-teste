@@ -22,7 +22,6 @@ body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-s
 .brand-s{color:var(--mut);font-size:12px}
 .top-right{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
-.pill-demo{background:#fff4e0;color:#8a5a00;border:1px solid #f0d9a8}
 .tabs{display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid var(--line);margin-bottom:18px;background:#f7f9fb;padding:6px;border-radius:10px}
 .tab{background:none;border:none;padding:9px 13px;font-size:13px;color:var(--mut);cursor:pointer;border-radius:7px}
 .tab:hover{color:var(--navy);background:#e5eaf1}
@@ -167,7 +166,7 @@ const DB = window.__DB__;
 const { useState, useMemo, useRef, useEffect } = React;
 
 /* ---------- constantes ---------- */
-const APP_VERSION = "3.2.2";
+const APP_VERSION = "3.3.0";
 const PERIODO = { ini: "2025-06-01", fim: "2026-05-31" };
 const B4P_CNPJ = "26112686000104";
 const ZIP_LIMITS = { arquivos:10000, porArquivo:20*1024*1024, total:300*1024*1024 };
@@ -742,7 +741,7 @@ function parseXml(text, filename){
     vNF:Number(txt(doc.getElementsByTagNameNS("*","ICMSTot")[0],"vNF"))||0,
     infCpl:txt(doc.getElementsByTagNameNS("*","infAdic")[0]||infNFe,"infCpl"),
     refNFe:txtAll(infNFe,"refNFe").map(n=>onlyDigits(n.textContent)).filter(Boolean),
-    itens:[], simulado:false,
+    itens:[],
   };
   const dets = txtAll(infNFe,"det");
   if(!dets.length) return { tipo:"sem_itens", arquivo:filename, chave, note };
@@ -775,33 +774,6 @@ function parseXml(text, filename){
   return { tipo:"nfe", arquivo:filename, chave, note };
 }
 
-/* ================================================================
-   DADOS SIMULADOS PARA TESTE
-   ================================================================ */
-function mkItem(o){ return Object.assign({ nItem:"1",cProd:"",desc:"",ncm:"",cest:"",cfop:"",uCom:"UN",qCom:1,vUnCom:0,vProd:0,vDesc:0,vFrete:0,vSeg:0,vOutro:0,indTot:"1",orig:"0",cstIcms:"",csosn:"",vBCIcms:0,pICMS:"",vICMS:0,vBCST:0,pMVAST:"",pICMSST:"",vICMSST:0,vBCSTRet:0,vICMSSTRet:0,vICMSEfet:0,cstPis:"",vPis:0,cstCofins:"",vCofins:0,infAdProd:"" }, o); }
-function mkNote(o){ return Object.assign({ arquivo:"SIMULADO.xml",chave:"",mod:"55",serie:"1",nNF:"",dhEmi:"",dhEmiFull:"",tpNF:"1",idDest:"1",finNFe:"1",natOp:"",tpAmb:"2",cStat:"100",situacao:"Autorizada (simulada)",emitNome:"",emitDoc:"",ufEmit:"SP",crt:"3",destNome:"B4P Confecções LTDA",destDoc:B4P_CNPJ,ufDest:"SP",vNF:0,infCpl:"",itens:[],simulado:true }, o); }
-
-const DEMO = [
-  mkNote({ chave:"SIM0001", nNF:"1001", dhEmi:"2025-07-10", ufEmit:"SP", crt:"3", emitNome:"Distribuidora Aurora SP", emitDoc:"55444333000199", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"PERF-01", desc:"Perfume importado 100ml frasco", ncm:"33030010", cest:"", cfop:"1102", qCom:12, vUnCom:80, vProd:960, cstIcms:"", csosn:"102", cstPis:"01", cstCofins:"01", vICMS:57.6 }) ]}),
-  mkNote({ chave:"SIM0002", nNF:"1002", dhEmi:"2025-08-05", ufEmit:"SP", crt:"3", emitNome:"Moinho Central SP", emitDoc:"22333444000155", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"FAR-05", desc:"Farinha de trigo especial 1kg", ncm:"11010010", cfop:"1102", qCom:100, vUnCom:4.5, vProd:450, csosn:"102", cstPis:"01", cstCofins:"01" }) ]}),
-  mkNote({ chave:"SIM0003", nNF:"1003", dhEmi:"2025-09-12", ufEmit:"SP", crt:"1", emitNome:"Casa & Cia Utilidades", emitDoc:"33444555000122", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"COPO-10", desc:"Copo de vidro para mesa 300ml", ncm:"70134290", cest:"", cfop:"1403", qCom:60, vUnCom:5, vProd:300, csosn:"102", cstPis:"99", cstCofins:"99" }) ]}),
-  mkNote({ chave:"SIM0004", nNF:"1004", dhEmi:"2025-10-01", ufEmit:"PR", crt:"3", idDest:"2", emitNome:"Pneus Sul Ltda (PR)", emitDoc:"44555666000133", natOp:"Compra interestadual p/ revenda",
-    itens:[ mkItem({ cProd:"PNEU-20", desc:"Pneu novo aro 15 para automóvel", ncm:"40111000", cest:"16.001.00", cfop:"2102", qCom:20, vUnCom:300, vProd:6000, cstIcms:"00", csosn:"", cstPis:"01", cstCofins:"01", vICMS:720 }) ]}),
-  mkNote({ chave:"SIM0005", nNF:"1005", dhEmi:"2025-11-03", ufEmit:"SP", crt:"3", emitNome:"Utilidades Bandeirantes", emitDoc:"66777888000144", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"UTIL-30", desc:"Serviço de mesa em plástico", ncm:"39241000", cest:"", cfop:"1403", qCom:40, vUnCom:12, vProd:480, csosn:"500", cstPis:"49", cstCofins:"49", vBCSTRet:520, vICMSSTRet:37 }) ]}),
-  mkNote({ chave:"SIM0006", nNF:"1006", dhEmi:"2025-12-08", ufEmit:"SP", crt:"3", emitNome:"Malharia Ficticia SP", emitDoc:"77888999000155", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"CAM-40", desc:"Camiseta de malha 100% algodão", ncm:"61091000", cfop:"1102", qCom:200, vUnCom:18, vProd:3600, cstIcms:"00", csosn:"", cstPis:"04", cstCofins:"04", vICMS:432 }) ]}),
-  mkNote({ chave:"SIM0007", nNF:"1007", dhEmi:"2026-05-06", ufEmit:"SP", crt:"3", emitNome:"Bela Cosméticos SP", emitDoc:"88999000000166", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"SHA-50", desc:"Xampu para cabelo 350ml", ncm:"33051000", cest:"20.017.00", cfop:"1102", qCom:50, vUnCom:9, vProd:450, csosn:"102", cstPis:"01", cstCofins:"01" }) ]}),
-  mkNote({ chave:"SIM0008", nNF:"1008", dhEmi:"2026-02-15", ufEmit:"SP", crt:"1", emitNome:"Confecções Parceira SP", emitDoc:"99000111000177", natOp:"Compra p/ revenda",
-    itens:[ mkItem({ cProd:"CALCA-60", desc:"Calça jeans masculina algodão", ncm:"62034200", cfop:"1102", qCom:120, vUnCom:45, vProd:5400, csosn:"102", cstPis:"49", cstCofins:"49" }) ]}),
-];
-DEMO.forEach(n=>{ n.itens.forEach(it=>{ it.tpNF = n.tpNF; }); n.vNF = n.itens.reduce((s,i)=>s+i.vProd,0); });
-
-window.__DEMO__ = DEMO;
 window.__PARSER__ = parseXml;
 
 /* ================================================================
@@ -890,10 +862,10 @@ function TributosHub({rows,M}){
     {sub==="icms"&&<ModuloView rows={rows} modulo="ICMS-ST SP" titulo="ICMS-ST São Paulo"/>} {sub==="ant"&&<ModuloView rows={rows} modulo="Antecipação 426-A" titulo="Antecipação — Art. 426-A"/>}
     {sub==="diverg"&&<Divergencias rows={rows}/>}</div>;
 }
-function DocumentosHub({fileRef,handleFiles,logs,demoOn,setDemoOn,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,notes,canceladas,config,targetDoc,projectData,restaurarBackup,checklist,competencia}){
+function DocumentosHub({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,notes,canceladas,config,targetDoc,projectData,restaurarBackup,checklist,competencia}){
   const [sub,setSub]=useState("upload");
   return <div><SectionTabs items={[["upload","Importar e log"],["evid","Evidências por XML"]]} value={sub} onChange={setSub}/>
-    {sub==="upload"&&<Upload fileRef={fileRef} handleFiles={handleFiles} logs={logs} demoOn={demoOn} setDemoOn={setDemoOn} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventos.length} ctes={ctes.length} inutilizacoes={inutilizacoes.length} excluidas={excluidas} storageOk={storageOk} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklist} competencia={competencia}/>} 
+    {sub==="upload"&&<Upload fileRef={fileRef} handleFiles={handleFiles} logs={logs} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventos.length} ctes={ctes.length} inutilizacoes={inutilizacoes.length} excluidas={excluidas} storageOk={storageOk} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklist} competencia={competencia}/>} 
     {sub==="evid"&&<Evidencias notes={notes} ctes={ctes} inutilizacoes={inutilizacoes} eventos={eventos} canceladas={canceladas} config={config} targetDoc={targetDoc}/>}</div>;
 }
 function ConfiguracoesHub({config,setConfig,temReais,basesTs}){
@@ -983,10 +955,9 @@ async function sha256(text){
   let h=0; for(let i=0;i<text.length;i++) h=((h<<5)-h+text.charCodeAt(i))|0; return "fallback-"+(h>>>0).toString(16);
 }
 function motivoExclusao(note,config,canceladas,targetDoc){
-  const simulado=!!note.simulado;
-  if(!simulado&&!note.autorizada) return note.situacao||"Documento não autorizado";
+  if(!note.autorizada) return note.situacao||"Documento não autorizado";
   if(!["55","65"].includes(note.mod)) return `Modelo ${note.mod||"não informado"} não suportado`;
-  if(!simulado&&note.tpAmb!=="1") return "Documento de homologação";
+  if(note.tpAmb!=="1") return "Documento de homologação";
   if(!note.dhEmi) return "Data de emissão ausente";
   if(config.ini&&note.dhEmi<config.ini) return "Anterior ao período configurado";
   if(config.fim&&note.dhEmi>config.fim) return "Posterior ao período configurado";
@@ -1334,7 +1305,6 @@ function App(){
   const [ctes,setCtes]=useState([]);
   const [inutilizacoes,setInutilizacoes]=useState([]);
   const [ultimoLote,setUltimoLote]=useState(null);
-  const [demoOn,setDemoOn]=useState(true);
   const [competencia,setCompetencia]=useState("todas");
   const [config,setConfig]=useState({empresa:"B4P Confecções LTDA",cnpj:B4P_CNPJ,uf:"SP",regime:"Simples Nacional",ini:PERIODO.ini,fim:PERIODO.fim});
   const [processing,setProcessing]=useState(false);
@@ -1348,24 +1318,23 @@ function App(){
     loadProjectState().then(p=>{
       setStorageOk(true);
       if(!p)return;
-      if(Array.isArray(p.realNotes))setRealNotes(p.realNotes);
+      if(Array.isArray(p.realNotes))setRealNotes(p.realNotes.filter(n=>!n.simulado));
       if(Array.isArray(p.logs))setLogs(p.logs);
       if(Array.isArray(p.eventos))setEventos(p.eventos);
       if(Array.isArray(p.ctes))setCtes(p.ctes);
       if(Array.isArray(p.inutilizacoes))setInutilizacoes(p.inutilizacoes);
       if(p.ultimoLote)setUltimoLote(p.ultimoLote);
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
-      if(typeof p.demoOn==="boolean")setDemoOn(p.demoOn);
       if(typeof p.competencia==="string")setCompetencia(p.competencia);
     }).catch(()=>setStorageOk(false)).finally(()=>setHydrated(true));
   },[]);
   useEffect(()=>{
     if(!hydrated)return;
-    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,demoOn,competencia,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
+    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
     return ()=>clearTimeout(t);
-  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,demoOn,competencia]);
+  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia]);
 
-  const notes = useMemo(()=> demoOn ? [...window.__DEMO__, ...realNotes] : realNotes, [demoOn, realNotes]);
+  const notes = realNotes;
   const empresa = useMemo(()=> resolveEmpresa(notes,config), [notes,config]);
   const targetDoc=onlyDigits(config.cnpj)||onlyDigits(empresa&&empresa.doc);
   const engineCtx=useMemo(()=>({targetDoc,uf:(config.uf||empresa?.uf||"").toUpperCase()}),[targetDoc,config.uf,empresa]);
@@ -1477,7 +1446,7 @@ function App(){
   }, [rows,activeNotes,excludedNotes,activeCtes,excludedCtes,activeInuts,logsAnalise,targetDoc,resumoSeq]);
 
   const projectData=useMemo(()=>({schema:"b4p-fiscal-project",schemaVersion:1,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),
-    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,demoOn,competencia}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,demoOn,competencia]);
+    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia]);
   const dossieData=useMemo(()=>({M,rows,config,targetDoc,competencia,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
     inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,rows,config,targetDoc,competencia,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
 
@@ -1554,7 +1523,7 @@ function App(){
         duplicados:newLogs.filter(l=>/duplicad/i.test(l.status)).length,invalidos:newLogs.filter(l=>/inválid|falha|sem itens|não é XML/i.test(l.status)).length};
       setUltimoLote(resumoLote);
       if(competenciaPrincipal)setCompetencia(competenciaPrincipal);
-      if(newNotes.length||newCtes.length||newInuts.length)setDemoOn(false); setTab("documentos");
+      setTab("documentos");
     }catch(e){ setImportError("Não foi possível concluir a importação. Tente novamente com um lote menor."); }
     finally{ setProcessing(false); }
   }
@@ -1571,7 +1540,7 @@ function App(){
   function limpar(){
     if(!confirm("ATENÇÃO: isso removerá todos os XMLs, eventos, inutilizações e logs de todas as competências. As bases tributárias serão mantidas. Deseja continuar?"))return;
     const digitado=prompt('Para confirmar, digite EXCLUIR TUDO');if(digitado!=="EXCLUIR TUDO"){alert("Exclusão cancelada: o texto de confirmação não confere.");return;}
-    setRealNotes([]);setCtes([]);setEventos([]);setInutilizacoes([]);setLogs([]);setUltimoLote(null);setCompetencia("todas");setDemoOn(true);setImportError("");
+    setRealNotes([]);setCtes([]);setEventos([]);setInutilizacoes([]);setLogs([]);setUltimoLote(null);setCompetencia("todas");setImportError("");
   }
   async function restaurarBackup(file){
     if(!file)return;
@@ -1580,9 +1549,9 @@ function App(){
       const p=JSON.parse(await readFileText(file));
       if(!p||p.schema!=="b4p-fiscal-project"||!Array.isArray(p.realNotes)||!Array.isArray(p.logs)||!Array.isArray(p.eventos)||!Array.isArray(p.ctes)||!Array.isArray(p.inutilizacoes))throw new Error("Arquivo não reconhecido como backup deste sistema.");
       if(!confirm(`Restaurar o backup e substituir os dados atualmente carregados?\n\nNF-e/NFC-e: ${fmtNum(p.realNotes.length)}\nCT-e: ${fmtNum(p.ctes.length)}\nEventos: ${fmtNum(p.eventos.length)}\nInutilizações: ${fmtNum(p.inutilizacoes.length)}`))return;
-      setRealNotes(p.realNotes);setLogs(p.logs);setEventos(p.eventos);setCtes(p.ctes);setInutilizacoes(p.inutilizacoes);setUltimoLote(p.ultimoLote||null);
+      setRealNotes(p.realNotes.filter(n=>!n.simulado));setLogs(p.logs);setEventos(p.eventos);setCtes(p.ctes);setInutilizacoes(p.inutilizacoes);setUltimoLote(p.ultimoLote||null);
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
-      setDemoOn(typeof p.demoOn==="boolean"?p.demoOn:false);setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setImportError("");setTab("inicio");
+      setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setImportError("");setTab("inicio");
       alert("Backup restaurado com sucesso.");
     }catch(e){alert(`Não foi possível restaurar o backup: ${e.message||"arquivo inválido"}`);}
   }
@@ -1594,7 +1563,6 @@ function App(){
     <div className="topbar">
       <div className="brand"><span className="logo">B4P</span><div><div className="brand-t">B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</div><div className="brand-s">Consultoria tributária · análise documental, riscos e oportunidades · v{APP_VERSION}</div></div></div>
       <div className="top-right">
-        {demoOn && <span className="pill pill-demo">● DADOS SIMULADOS</span>}
         {empresa ? <span className="muted"><b>{empresa.nome}</b> · {empresa.uf} · {empresa.papel}</span> : <span className="muted">{config.empresa} · {config.uf} · {config.regime}</span>}
       </div>
     </div>
@@ -1605,12 +1573,12 @@ function App(){
     </div>
     <div className="tabs">{TABS.map(([k,l])=><button key={k} className={"tab"+(tab===k?" active":"")} onClick={()=>setTab(k)}>{l}</button>)}</div>
     <div className="content">
-      {tab==="inicio" && <VisaoGeral M={M} rows={rows} notes={activeNotes} empresa={empresa} config={config} competencia={competencia} resumoMensal={resumoMensal} setCompetencia={setCompetencia} demoOn={demoOn} setTab={setTab} excluidas={excludedNotes.length+excludedCtes.length}/>} 
+      {tab==="inicio" && <VisaoGeral M={M} rows={rows} notes={activeNotes} empresa={empresa} config={config} competencia={competencia} resumoMensal={resumoMensal} setCompetencia={setCompetencia} setTab={setTab} excluidas={excludedNotes.length+excludedCtes.length}/>} 
       {tab==="operacoes" && <OperacoesCfop rows={rows} targetDoc={targetDoc} M={M}/>} 
       {tab==="produto" && <ProdutoView rows={rows}/>} 
       {tab==="tributos" && <TributosHub rows={rows} M={M}/>} 
       {tab==="seq" && <Sequencia grupos={gruposSeq} targetDoc={targetDoc} config={config} competencia={competencia}/>} 
-      {tab==="documentos" && <DocumentosHub fileRef={fileRef} handleFiles={handleFiles} logs={logsComCompetencia} demoOn={demoOn} setDemoOn={setDemoOn} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventosVisiveis} ctes={ctesVisiveis} inutilizacoes={inutsVisiveis} excluidas={excludedNotes.length+excludedCtes.length} storageOk={storageOk} notes={notesVisiveis} canceladas={canceladas} config={config} targetDoc={targetDoc} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklistImportacao} competencia={competencia}/>} 
+      {tab==="documentos" && <DocumentosHub fileRef={fileRef} handleFiles={handleFiles} logs={logsComCompetencia} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventosVisiveis} ctes={ctesVisiveis} inutilizacoes={inutsVisiveis} excluidas={excludedNotes.length+excludedCtes.length} storageOk={storageOk} notes={notesVisiveis} canceladas={canceladas} config={config} targetDoc={targetDoc} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklistImportacao} competencia={competencia}/>} 
       {tab==="resumo" && <Resumo dossie={dossieData}/>} 
       {tab==="config" && <ConfiguracoesHub config={config} setConfig={setConfig} temReais={realNotes.length+ctes.length>0} basesTs={basesTs}/>} 
     </div>
@@ -1619,11 +1587,10 @@ function App(){
 }
 
 /* ---------- TAB: Início ---------- */
-function Inicio({M,demoOn,setTab}){
+function Inicio({M}){
   return <div>
     <Card title="Escopo da análise" sub="Empresa B4P Confecções · São Paulo · Simples Nacional · período 01/06/2025 a 31/05/2026">
       <p className="lead">Esta aplicação usa XMLs de NF-e/NFC-e, CT-e, eventos e inutilizações como evidência. Vendas, entradas, devoluções e cancelamentos são segregados; a numeração é conferida por emitente, modelo e série. Os itens são cruzados com o banco tributário para sinalizar indícios de PIS/Cofins, ICMS-ST e divergências cadastrais. Todo resultado é um <b>indício</b> sujeito a revisão — a ferramenta não substitui o parecer do consultor.</p>
-      {demoOn && <div className="note-demo">Exibindo <b>DADOS SIMULADOS PARA TESTE</b>. Importe XMLs reais em <a onClick={()=>setTab("documentos")}>Documentos</a> para substituí-los.</div>}
     </Card>
     <div className="grid g4">
       <Stat n={fmtNum(M.itens)} l="Itens analisados"/>
@@ -1737,7 +1704,7 @@ function GerenciarDados({dados,competencia,onExcluir,onExcluirTudo,processing}){
   </>;
 }
 
-function Upload({fileRef,handleFiles,logs,demoOn,setDemoOn,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,projectData,restaurarBackup,checklist,competencia}){
+function Upload({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,projectData,restaurarBackup,checklist,competencia}){
   const backupRef=useRef();
   return <div>
     <ChecklistImportacao items={checklist||[]} competencia={competencia}/>
@@ -1750,10 +1717,7 @@ function Upload({fileRef,handleFiles,logs,demoOn,setDemoOn,limpar,excluirDadosCo
         <div className="muted">Aceita múltiplos .xml e .zip, inclusive XMLs em subpastas do ZIP. Outros tipos dentro do pacote são ignorados.</div>
         <input ref={fileRef} type="file" accept=".xml,.zip,application/xml,application/zip" multiple style={{display:"none"}} onChange={e=>{handleFiles(e.target.files);e.target.value="";}}/>
       </div>
-      <div className="row">
-        <label className="chk"><input type="checkbox" checked={demoOn} onChange={e=>setDemoOn(e.target.checked)}/> Manter dados simulados</label>
-        <GerenciarDados dados={gerenciamentoDados||[]} competencia={competencia} onExcluir={excluirDadosCompetencia} onExcluirTudo={limpar} processing={processing}/>
-      </div>
+      <div className="row"><GerenciarDados dados={gerenciamentoDados||[]} competencia={competencia} onExcluir={excluirDadosCompetencia} onExcluirTudo={limpar} processing={processing}/></div>
       <div className="status-line"><span>✓ Hash SHA-256</span><span>• {eventos} evento(s)</span><span>• {ctes} CT-e</span><span>• {inutilizacoes} inutilização(ões)</span><span>• {excluidas} documento(s) fora da análise</span><span>• {storageOk===false?"armazenamento automático indisponível":storageOk===true?"projeto salvo automaticamente neste navegador":"verificando armazenamento local…"}</span></div>
       <div className="muted sm">Limites de segurança por ZIP: até {fmtNum(ZIP_LIMITS.arquivos)} XMLs, 20 MB por XML e 300 MB descompactados.</div>
       {importError&&<div className="aviso-uf">{importError}</div>}
@@ -1767,7 +1731,7 @@ function Upload({fileRef,handleFiles,logs,demoOn,setDemoOn,limpar,excluirDadosCo
       </div>
     </Card>
     <Card title="Log de arquivos processados" sub={logs.length+" arquivo(s) em todas as competências · rastreabilidade XML → item → regra"}>
-      {!logs.length ? <div className="empty">Nenhum arquivo importado ainda. Os XMLs simulados não aparecem aqui.</div> :
+      {!logs.length ? <div className="empty">Nenhum arquivo importado ainda.</div> :
       <table className="table"><thead><tr><th>Arquivo</th><th>Competência</th><th>Hash</th><th>Importação</th><th>Chave</th><th>Situação</th><th className="r">Itens</th><th className="r">Alertas</th></tr></thead>
       <tbody>{logs.map((l,i)=><tr key={i}><td className="mono">{l.arquivo}</td><td>{l.competencia?<span className="tag tag-info">{fmtCompetencia(l.competencia)}</span>:"—"}</td><td className="mono" title={l.hash}>{l.hash&&l.hash!=="—"?l.hash.slice(0,12)+"…":"—"}</td><td>{l.data}</td><td className="mono sm">{l.chave||"—"}</td><td><span className={"tag "+(/^(Autorizada|CT-e autorizada|Inutilização homologada)/i.test(l.status)?"tag-ok":/Evento:|Excluíd|duplic/i.test(l.status)?"tag-warn":"tag-bad")}>{l.status}</span></td><td className="r">{l.itens||"—"}</td><td className="r">{l.alertas||"—"}</td></tr>)}</tbody></table>}
     </Card>
@@ -2031,7 +1995,7 @@ function Evidencias({notes,ctes,inutilizacoes,eventos,canceladas,config,targetDo
       <div className={"xmlcard "+(motivo?"excluded":"")} key={(n.chave||n.arquivo)+i}>
         <div className="xmlcard-h" onClick={()=>setOpen(open===i?null:i)}>
           <div><b>{nomeModelo(n.mod)} série {n.serie} nº {n.nNF}</b> · {n.emitNome||"—"} <span className="muted">({n.ufEmit}→{n.ufDest}, CRT {n.crt})</span> <span className={"tag "+(ehDevolucao(n)?"tag-neutral":"tag-ok")}>{n.operacao||tipoOperacao(n)}</span></div>
-          <div className="muted sm">{n.dhEmi} · {n.itens.length} item(ns) · {fmtBRL(n.vNF)} {n.simulado&&<span className="tag tag-warn">SIMULADO</span>} {motivo&&<span className="tag tag-neutral">FORA DA ANÁLISE</span>} · {open===i?"▲":"▼"}</div>
+          <div className="muted sm">{n.dhEmi} · {n.itens.length} item(ns) · {fmtBRL(n.vNF)} {motivo&&<span className="tag tag-neutral">FORA DA ANÁLISE</span>} · {open===i?"▲":"▼"}</div>
         </div>
         {open===i && <div className="xmlcard-b">
           {motivo&&<div className="aviso-uf"><b>Documento preservado apenas como evidência:</b> {motivo}.</div>}
@@ -2291,7 +2255,7 @@ function GrupoAchado({sit, itens, onOpen}){
   </div>;
 }
 
-function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCompetencia,demoOn,setTab,excluidas}){
+function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCompetencia,setTab,excluidas}){
   const [sel,setSel]=useState(null);
   const [lista,setLista]=useState(null);
   const uf = empresa?empresa.uf:"";
@@ -2311,7 +2275,6 @@ function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCom
         <div className="hero-kpi"><b>{fmtNum(M.ctes)}</b><span>CT-e vinculados</span></div><div className="hero-kpi"><b>{fmtNum(M.validos)} / {fmtNum(M.xml)}</b><span>XMLs válidos / importados</span></div>
       </div>
       <div className="quick-actions"><button className="btn" onClick={()=>setTab("documentos")}>Importar documentos</button><button className="btn" onClick={()=>setTab("operacoes")}>Analisar operações e CFOP</button><button className="btn" onClick={()=>setTab("seq")}>Conferir sequência</button><button className="btn" onClick={()=>setTab("resumo")}>Abrir relatório</button></div>
-      {demoOn&&<div className="note-demo">Exibindo <b>DADOS SIMULADOS</b>. Acesse “Documentos” para importar o lote real.</div>}
     </Card>
     <div className="grid g4 sem-grid">
       <div className="stat kpi-primary good"><div className="stat-n">{fmtBRL(M.valorVendas)}</div><div className="stat-l">Receita provável</div><div className="stat-note">Soma de vProd classificada como venda</div></div>
