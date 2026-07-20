@@ -1,8 +1,8 @@
-# Análise Fiscal — B4P
+# B4P 360 — Diagnóstico Tributário
 
-Sistema estático de conferência documental e tributária desenvolvido para o projeto B4P.
+Sistema estático de apoio à consultoria tributária da B4P, com análise documental, identificação de riscos e mapeamento de oportunidades.
 
-Esta é a **publicação v1** do sistema, correspondente à versão interna **3.2.1**.
+Esta é a **publicação v2** do sistema, correspondente à versão interna **3.2.2**.
 
 ## O que o sistema faz
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CONFERENCIA DE APURAÇÃO - LUCRO PRESUMIDO</title>
+<title>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -167,7 +167,7 @@ const DB = window.__DB__;
 const { useState, useMemo, useRef, useEffect } = React;
 
 /* ---------- constantes ---------- */
-const APP_VERSION = "3.2.1";
+const APP_VERSION = "3.2.2";
 const PERIODO = { ini: "2025-06-01", fim: "2026-05-31" };
 const B4P_CNPJ = "26112686000104";
 const ZIP_LIMITS = { arquivos:10000, porArquivo:20*1024*1024, total:300*1024*1024 };
@@ -1266,7 +1266,7 @@ function montarDadosDossie(d){
     ["Possíveis monofásicos",d.M.mono],["Possível alíquota zero",d.M.zero],["Possível ICMS-ST/SP",d.M.st],["Possível antecipação 426-A",d.M.ant],["Revisões manuais",d.M.revisao]
   ].map(([indicador,valor])=>({indicador,valor}));
   const capa=[
-    ["Relatório","CONFERENCIA DE APURAÇÃO - LUCRO PRESUMIDO"],["Empresa",d.config.empresa],["CNPJ analisado",d.targetDoc||d.config.cnpj],["UF",d.config.uf],["Regime informado",d.config.regime],
+    ["Relatório","B4P 360 — DIAGNÓSTICO TRIBUTÁRIO"],["Empresa",d.config.empresa],["CNPJ analisado",d.targetDoc||d.config.cnpj],["UF",d.config.uf],["Regime informado",d.config.regime],
     ["Competência/período",periodoDossie(d)],["Gerado em",geradoEm],["Versão do sistema",APP_VERSION],["Notas no dossiê",documentos.length],["Itens no dossiê",itens.length],["CT-e no dossiê",ctes.length],
     ["Aviso","Relatório de triagem e apoio à consultoria; as conclusões dependem de revisão técnica e das informações fornecidas pelo cliente."]
   ].map(([campo,valor])=>({campo,valor}));
@@ -1295,7 +1295,7 @@ function gerarRelatorioTecnicoHTML(d,dados){
   const kpis=[["Receita provável",fmtBRL(d.M.valorVendas)],["Devoluções",fmtBRL(d.M.valorDevolucoes)],["Receita provável líquida",fmtBRL(d.M.saldoVendas)],["Fretes CT-e",fmtBRL(d.M.valorFrete)],["Itens analisados",fmtNum(d.M.itens)],["Documentos excluídos",fmtNum(d.M.excluidas)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório técnico fiscal - ${escHtml(periodoDossie(d))}</title><style>
   :root{--navy:#0f2a43;--blue:#2f6db3;--line:#d8e0e8;--mut:#657386;--bg:#f3f5f8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#202b36;font:14px/1.45 Arial,sans-serif}.page{max-width:1180px;margin:24px auto;background:#fff;padding:34px 38px;box-shadow:0 2px 12px #0001}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid var(--navy);padding-bottom:18px}.head h1{margin:0;color:var(--navy);font-size:25px}.head p{margin:5px 0;color:var(--mut)}button{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:9px 14px;cursor:pointer}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}.kpi{border:1px solid var(--line);border-radius:7px;padding:12px}.kpi b{display:block;color:var(--navy);font-size:17px}.kpi span{font-size:12px;color:var(--mut)}h2{color:var(--navy);font-size:18px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}.call{background:#eef5fb;border-left:4px solid var(--blue);padding:12px 14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{background:#edf2f7;color:var(--navy)}.nota,.vazio{color:var(--mut);font-size:12px}.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:12px;color:var(--mut);font-size:11px}@media(max-width:800px){.page{margin:0;padding:20px}.kpis{grid-template-columns:repeat(2,1fr)}.head{display:block}.head button{margin-top:12px}}@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:15mm}.no-print{display:none}.table-wrap{overflow:visible}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
-  </style></head><body><main class="page"><header class="head"><div><h1>CONFERENCIA DE APURAÇÃO - LUCRO PRESUMIDO</h1><p><b>${escHtml(d.config.empresa)}</b> · CNPJ ${escHtml(d.targetDoc||d.config.cnpj||"—")} · ${escHtml(periodoDossie(d))}</p><p>Gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
+  </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · CNPJ ${escHtml(d.targetDoc||d.config.cnpj||"—")} · ${escHtml(periodoDossie(d))}</p><p>Gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
   <div class="kpis">${kpis.map(([a,b])=>`<div class="kpi"><b>${escHtml(b)}</b><span>${escHtml(a)}</span></div>`).join("")}</div>
   <div class="call"><b>Critério de receita:</b> venda/faturamento pelo valor dos produtos (vProd), separando devoluções. Os CFOPs 5949/6949 são movimentações para o estoque FULL do Mercado Livre e não são receita; 1949/2949 são retornos dessas movimentações.</div>
   <h2>1. Checklist dos documentos importados</h2>${tabelaHtml(dados.checklist,[["categoria","Categoria"],["status","Status"],["quantidade","Quantidade"],["detalhe","Detalhe"]])}
@@ -1592,7 +1592,7 @@ function App(){
 
   return <div className="app">
     <div className="topbar">
-      <div className="brand"><span className="logo">B4P</span><div><div className="brand-t">CONFERENCIA DE APURAÇÃO</div><div className="brand-s">Lucro Presumido · conferência documental e tributária · v{APP_VERSION}</div></div></div>
+      <div className="brand"><span className="logo">B4P</span><div><div className="brand-t">B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</div><div className="brand-s">Consultoria tributária · análise documental, riscos e oportunidades · v{APP_VERSION}</div></div></div>
       <div className="top-right">
         {demoOn && <span className="pill pill-demo">● DADOS SIMULADOS</span>}
         {empresa ? <span className="muted"><b>{empresa.nome}</b> · {empresa.uf} · {empresa.papel}</span> : <span className="muted">{config.empresa} · {config.uf} · {config.regime}</span>}
@@ -2092,7 +2092,7 @@ function gerarResumo(M,rows,config,targetDoc,competencia){
   const icmsTxt=(M.st||M.ant)?"Foram sinalizados itens com possível ICMS-ST em São Paulo. A incidência exige confirmação conjunta de NCM, descrição, CEST, segmento e vigência; o cálculo depende da base específica do segmento.":"Nenhum indício de ICMS-ST paulista ou antecipação do art. 426-A foi localizado nos documentos incluídos no período.";
   const opTxt=(M.mono||M.zero)?"Os indícios encontrados podem representar oportunidade de ajuste, mas nenhum valor recuperável foi calculado. A validação documental e legal é obrigatória.":"Não foi identificada oportunidade tributária automática com base nos critérios atualmente implementados.";
   const rec=M.saidasRevisar?"Classificar primeiro as saídas pendentes por natureza e CFOP antes de utilizar os valores como receita.":M.lacunasSequencia?"Investigar as quebras de sequência, procurando XML autorizado, evento, denegação ou protocolo de inutilização para cada número faltante.":rows.some(r=>r.res.temAlerta)?"Priorizar os itens de maior valor bruto, confirmar os enquadramentos nas fontes oficiais e registrar a conclusão técnica de cada achado.":"Manter a documentação da análise e repetir a conferência quando houver novos XMLs ou atualização das bases.";
-  return `RESUMO EXECUTIVO — CONFERENCIA DE APURAÇÃO - LUCRO PRESUMIDO
+  return `RESUMO EXECUTIVO — B4P 360 — DIAGNÓSTICO TRIBUTÁRIO
 Empresa: ${config.empresa} · UF ${config.uf} · ${config.regime}
 Período: ${competencia&&competencia!=="todas"?fmtCompetencia(competencia):config.ini+" a "+config.fim}
 Documento gerado por ferramenta de triagem — NÃO constitui parecer tributário definitivo.
