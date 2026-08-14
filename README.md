@@ -2,15 +2,19 @@
 
 Sistema estático de apoio à consultoria tributária da B4P, com análise documental, identificação de riscos e mapeamento de oportunidades.
 
-Esta é a **publicação v3** do sistema, correspondente à versão interna **3.3.0**.
+Esta é a **publicação v4** do sistema, correspondente à versão interna **3.4.0**.
 
 Nesta versão, o sistema inicia vazio e não inclui documentos, valores ou controles de demonstração. Todos os indicadores passam a refletir exclusivamente os arquivos efetivamente importados pelo usuário.
+
+A v4 também separa os documentos por marketplace. Os dados já existentes são migrados para **Mercado Livre** e cada novo lote deve ter sua origem escolhida antes da importação, incluindo **TOK&STOK**. A série fiscal permanece vinculada à nota e aparece nos controles e nas exportações.
 
 ## O que o sistema faz
 
 - importa arquivos XML avulsos ou em lote dentro de arquivos ZIP;
 - identifica NF-e/NFC-e, eventos de cancelamento, inutilizações e CT-e;
 - organiza os documentos por competência;
+- registra e filtra a origem de cada lote (Mercado Livre, TOK&STOK ou outros canais);
+- preserva série, número e chave fiscal nos controles e relatórios;
 - mantém checklist automático de documentos importados;
 - analisa operações, CFOP, produtos e tributação;
 - controla a sequência fiscal dos documentos emitidos pela empresa analisada;
@@ -44,9 +48,10 @@ O GitHub mostrará o endereço público do sistema na própria tela de Páginas.
 
 1. Confirme o CNPJ e as regras na aba **Configurações**.
 2. Selecione a competência que será conferida.
-3. Importe cada categoria de documentos e valide o checklist automático.
-4. Confira alertas, operações/CFOP, tributação e sequência fiscal.
-5. Exporte o relatório robusto e o backup JSON antes de mudar de navegador ou limpar dados.
+3. Antes de cada importação, selecione o marketplace de origem do lote.
+4. Importe cada categoria de documentos e valide o checklist automático.
+5. Confira alertas, operações/CFOP, tributação e sequência fiscal.
+6. Exporte o relatório robusto e o backup JSON antes de mudar de navegador ou limpar dados.
 
 ## Dependências
 

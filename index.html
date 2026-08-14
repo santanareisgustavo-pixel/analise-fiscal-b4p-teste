@@ -166,13 +166,15 @@ const DB = window.__DB__;
 const { useState, useMemo, useRef, useEffect } = React;
 
 /* ---------- constantes ---------- */
-const APP_VERSION = "3.3.0";
+const APP_VERSION = "3.4.0";
 const PERIODO = { ini: "2025-06-01", fim: "2026-05-31" };
 const B4P_CNPJ = "26112686000104";
 const ZIP_LIMITS = { arquivos:10000, porArquivo:20*1024*1024, total:300*1024*1024 };
 const CSTAT_AUTORIZADOS = new Set(["100","150"]);
 const CSTAT_CANCELAMENTO = new Set(["135","136","155"]);
 const CSTAT_INUTILIZACAO = new Set(["102"]);
+const ORIGENS_DOCUMENTO = {mercado_livre:"Mercado Livre",tokstok:"TOK&STOK",outros:"Outros canais"};
+const ORIGEM_LEGADO = "mercado_livre";
 const EVENTOS_SRE = {
   "2025-12-01": { ato: "Portaria SRE 85/2025", tipo: "inclusao", cest: "25.032.00", ncm: "87046000", anexo: "ANEXO VI" },
   "2026-01-01": { ato: "Portaria SRE 64/2025", tipo: "exclusao", anexos: ["ANEXO IX","ANEXO X","ANEXO XV","ANEXO XX"], parciais: ["ANEXO XIV","ANEXO XVI","ANEXO XVII"] },
@@ -184,6 +186,9 @@ const onlyDigits = s => (s||"").replace(/\D/g,"");
 const normNcm = s => { const d = onlyDigits(s); return d; };
 const fmtBRL = v => (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fmtNum = v => (Number(v)||0).toLocaleString("pt-BR");
+const origemCodigo = v => ORIGENS_DOCUMENTO[v] ? v : ORIGEM_LEGADO;
+const origemNome = v => ORIGENS_DOCUMENTO[origemCodigo(v)];
+const comOrigem = (registro,origem=ORIGEM_LEGADO) => ({...registro,origemMarketplace:origemCodigo(registro&&registro.origemMarketplace||origem)});
 const MESES_PT=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 function competenciaDe(data){const d=dtOnly(data);return d?d.slice(0,7):"";}
 function fmtCompetencia(c){if(!/^\d{4}-\d{2}$/.test(c||""))return "Todas as competências";const [a,m]=c.split("-");return `${MESES_PT[Number(m)-1]||m}/${a}`;}
@@ -862,10 +867,10 @@ function TributosHub({rows,M}){
     {sub==="icms"&&<ModuloView rows={rows} modulo="ICMS-ST SP" titulo="ICMS-ST São Paulo"/>} {sub==="ant"&&<ModuloView rows={rows} modulo="Antecipação 426-A" titulo="Antecipação — Art. 426-A"/>}
     {sub==="diverg"&&<Divergencias rows={rows}/>}</div>;
 }
-function DocumentosHub({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,notes,canceladas,config,targetDoc,projectData,restaurarBackup,checklist,competencia}){
+function DocumentosHub({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,notes,canceladas,config,targetDoc,projectData,restaurarBackup,checklist,competencia,importOrigin,setImportOrigin}){
   const [sub,setSub]=useState("upload");
   return <div><SectionTabs items={[["upload","Importar e log"],["evid","Evidências por XML"]]} value={sub} onChange={setSub}/>
-    {sub==="upload"&&<Upload fileRef={fileRef} handleFiles={handleFiles} logs={logs} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventos.length} ctes={ctes.length} inutilizacoes={inutilizacoes.length} excluidas={excluidas} storageOk={storageOk} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklist} competencia={competencia}/>} 
+    {sub==="upload"&&<Upload fileRef={fileRef} handleFiles={handleFiles} logs={logs} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventos.length} ctes={ctes.length} inutilizacoes={inutilizacoes.length} excluidas={excluidas} storageOk={storageOk} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklist} competencia={competencia} importOrigin={importOrigin} setImportOrigin={setImportOrigin}/>} 
     {sub==="evid"&&<Evidencias notes={notes} ctes={ctes} inutilizacoes={inutilizacoes} eventos={eventos} canceladas={canceladas} config={config} targetDoc={targetDoc}/>}</div>;
 }
 function ConfiguracoesHub({config,setConfig,temReais,basesTs}){
@@ -1046,10 +1051,10 @@ function montarChecklistImportacao({notes,ctes,eventos,inutilizacoes,targetDoc,c
   const cancelPendentes=evMes.filter(e=>!cancelCompletos.includes(e));
   const ctesMes=(ctes||[]).filter(c=>noMes(c.dhEmi)&&c.autorizada&&cteEnvolve(c,alvo));
   const inuts=(inutilizacoes||[]).filter(x=>noMes(x.dhRecbto)&&x.autorizada&&(!alvo||onlyDigits(x.emitDoc)===alvo));
-  const regNfe=(n,tipo)=>({arquivo:n.arquivo||"—",tipo,data:n.dhEmi||"",numero:n.nNF||"",serie:n.serie||"",chave:n.chave||"",situacao:n.autorizada?"Autorizada":"Não autorizada",detalhe:n.natOp||""});
-  const regCte=c=>({arquivo:c.arquivo||"—",tipo:"CT-e",data:c.dhEmi||"",numero:c.nCT||"",serie:c.serie||"",chave:c.chave||"",situacao:c.autorizada?"Autorizado":"Não autorizado",detalhe:c.emitNome||c.remNome||""});
+  const regNfe=(n,tipo)=>({arquivo:n.arquivo||"—",origem:origemNome(n.origemMarketplace),tipo,data:n.dhEmi||"",numero:n.nNF||"",serie:n.serie||"",chave:n.chave||"",situacao:n.autorizada?"Autorizada":"Não autorizada",detalhe:n.natOp||""});
+  const regCte=c=>({arquivo:c.arquivo||"—",origem:origemNome(c.origemMarketplace),tipo:"CT-e",data:c.dhEmi||"",numero:c.nCT||"",serie:c.serie||"",chave:c.chave||"",situacao:c.autorizada?"Autorizado":"Não autorizado",detalhe:c.emitNome||c.remNome||""});
   const regInut=x=>({arquivo:x.arquivo||"—",tipo:"Inutilização",data:x.dhRecbto||"",numero:faixa([Number(x.inicio),Number(x.fim)]),serie:x.serie||"",chave:x.protocolo||"",situacao:x.autorizada?"Homologada":"Não homologada",detalhe:`Modelo ${x.modelo||"—"}`});
-  const regEvento=e=>{const n=originais.get(e.chave);return {arquivo:e.arquivo||"—",tipo:"Cancelamento",data:e.dhEvento||"",numero:e.numero||n?.nNF||"",serie:e.serie||n?.serie||"",chave:e.chave||"",situacao:n&&n.autorizada?"Completo":"NF-e original ausente",detalhe:n&&n.autorizada?`Original: ${n.arquivo||"localizada"}`:"Somente o evento foi importado"};};
+  const regEvento=e=>{const n=originais.get(e.chave);return {arquivo:e.arquivo||"—",origem:origemNome(e.origemMarketplace),tipo:"Cancelamento",data:e.dhEvento||"",numero:e.numero||n?.nNF||"",serie:e.serie||n?.serie||"",chave:e.chave||"",situacao:n&&n.autorizada?"Completo":"NF-e original ausente",detalhe:n&&n.autorizada?`Original: ${n.arquivo||"localizada"}`:"Somente o evento foi importado"};};
   const normal=(key,label,registros,detail)=>({key,label,registros,qtd:registros.length,state:registros.length?"ok":"bad",detail:registros.length?detail:"Nenhum documento localizado"});
   const cancelState=cancelPendentes.length?"warn":cancelCompletos.length?"ok":"bad";
   return [
@@ -1178,7 +1183,7 @@ function montarDadosDossie(d){
     const motivo=motivoExclusao(n,d.config,d.canceladas,d.targetDoc),classes=new Set((n.itens||[]).map(it=>classificarOperacaoItem(n,it,d.targetDoc).key));
     const classe=classes.size===1?[...classes][0]:classes.size?"mista":"revisar";
     const soma=k=>(n.itens||[]).reduce((s,it)=>s+(Number(it[k])||0),0);
-    return {arquivo:n.arquivo,competencia:competenciaDe(n.dhEmi),modelo:n.mod,serie:n.serie,numero:n.nNF,chave:n.chave,emissao:n.dhEmi,natureza:n.natOp,
+    return {arquivo:n.arquivo,origem_marketplace:origemNome(n.origemMarketplace),competencia:competenciaDe(n.dhEmi),modelo:n.mod,serie:n.serie,numero:n.nNF,chave:n.chave,emissao:n.dhEmi,natureza:n.natOp,
       tipo:tipoOperacao(n),papel:papelDocumento(n,d.targetDoc),classificacao:metaOperacao(classe).label,emitente:n.emitNome,cnpj_cpf_emitente:n.emitDoc,uf_emitente:n.ufEmit,
       destinatario:n.destNome,cnpj_cpf_destinatario:n.destDoc,uf_destinatario:n.ufDest,crt:n.crt,finalidade:n.finNFe,situacao:n.situacao,
       incluida_na_analise:motivo?"Não":"Sim",motivo_exclusao:motivo,itens:(n.itens||[]).length,valor_produtos:soma("vProd"),descontos:soma("vDesc"),
@@ -1189,7 +1194,7 @@ function montarDadosDossie(d){
     const motivo=motivoExclusao(n,d.config,d.canceladas,d.targetDoc);
     (n.itens||[]).forEach(it=>{
       const r=rowMap.get(`${docKey(n)}|${it.nItem}`),op=classificarOperacaoItem(n,it,d.targetDoc);
-      itens.push({arquivo:n.arquivo,competencia:competenciaDe(n.dhEmi),chave:n.chave,modelo:n.mod,serie:n.serie,numero:n.nNF,emissao:n.dhEmi,natureza:n.natOp,
+      itens.push({arquivo:n.arquivo,origem_marketplace:origemNome(n.origemMarketplace),competencia:competenciaDe(n.dhEmi),chave:n.chave,modelo:n.mod,serie:n.serie,numero:n.nNF,emissao:n.dhEmi,natureza:n.natOp,
         incluida_na_analise:motivo?"Não":"Sim",motivo_exclusao:motivo,papel:papelDocumento(n,d.targetDoc),classificacao_operacao:metaOperacao(op.key).label,
         motivo_classificacao:op.motivo,item:it.nItem,codigo_produto:it.cProd,descricao:it.desc,ncm:it.ncm,cest:it.cest,cfop:it.cfop,unidade:it.uCom,quantidade:it.qCom,
         valor_unitario:it.vUnCom,valor_produto:it.vProd,desconto:it.vDesc,frete:it.vFrete,seguro:it.vSeg,outras_despesas:it.vOutro,compoe_total:it.indTot,
@@ -1208,14 +1213,14 @@ function montarDadosDossie(d){
     o.classificacoes.add(res.situacao);res.alertas.forEach(a=>o.alertas.add(a.tipo));if(n.dhEmi){if(n.dhEmi<o.primeira_emissao)o.primeira_emissao=n.dhEmi;if(n.dhEmi>o.ultima_emissao)o.ultima_emissao=n.dhEmi;}produtosMap.set(k,o);
   });
   const produtos=[...produtosMap.values()].map(o=>({...o,cfops:[...o.cfops].join(", "),cst_icms:[...o.cst_icms].join(", "),csosn:[...o.csosn].join(", "),cst_pis:[...o.cst_pis].join(", "),cst_cofins:[...o.cst_cofins].join(", "),classificacoes:[...o.classificacoes].join(" | "),alertas:[...o.alertas].join(" | "),primeira_emissao:o.primeira_emissao.startsWith("9999")?"":o.primeira_emissao})).sort((a,b)=>b.valor_produtos-a.valor_produtos);
-  const ctes=d.ctes.map(c=>{const motivo=motivoExclusaoCte(c,d.config,d.canceladas,d.targetDoc);return {arquivo:c.arquivo,competencia:competenciaDe(c.dhEmi),chave:c.chave,modelo:c.mod,serie:c.serie,numero:c.nCT,emissao:c.dhEmi,
+  const ctes=d.ctes.map(c=>{const motivo=motivoExclusaoCte(c,d.config,d.canceladas,d.targetDoc);return {arquivo:c.arquivo,origem_marketplace:origemNome(c.origemMarketplace),competencia:competenciaDe(c.dhEmi),chave:c.chave,modelo:c.mod,serie:c.serie,numero:c.nCT,emissao:c.dhEmi,
     emitente:c.emitNome,cnpj_emitente:c.emitDoc,remetente:c.remNome,cnpj_remetente:c.remDoc,destinatario:c.destNome,cnpj_destinatario:c.destDoc,tomador_cnpj_cpf:c.tomaDoc,
     vinculo_empresa:vinculoCte(c,d.targetDoc),cfop:c.cfop,natureza:c.natOp,municipio_inicio:c.cMunIni,municipio_fim:c.cMunFim,valor_prestacao:c.vTPrest,valor_receber:c.vRec,
     cst_icms:c.cstIcms,base_icms:c.vBCIcms,aliquota_icms:c.pICMS,valor_icms:c.vICMS,quantidade_nfe_referenciadas:(c.chavesNFe||[]).length,nfe_referenciadas:(c.chavesNFe||[]).join(" | "),
     situacao:c.situacao,incluido_na_analise:motivo?"Não":"Sim",motivo_exclusao:motivo};});
-  const eventos=d.eventos.map(e=>({arquivo:e.arquivo,competencia:competenciaDe(e.dhEvento),evento:e.subtipo,tipo_evento:e.tpEvento,modelo:e.modelo,serie:e.serie,numero:e.numero,
+  const eventos=d.eventos.map(e=>({arquivo:e.arquivo,origem_marketplace:origemNome(e.origemMarketplace),competencia:competenciaDe(e.dhEvento),evento:e.subtipo,tipo_evento:e.tpEvento,modelo:e.modelo,serie:e.serie,numero:e.numero,
     cnpj_emitente:e.emitDoc,data_evento:e.dhEvento,cstat:e.cStat,chave:e.chave,homologado:e.subtipo!=="Cancelamento"||CSTAT_CANCELAMENTO.has(e.cStat)?"Sim":"Não"}));
-  const inutilizacoes=d.inutilizacoes.map(x=>({arquivo:x.arquivo,competencia:competenciaDe(x.dhRecbto),cnpj_emitente:x.emitDoc,modelo:x.modelo,serie:x.serie,numero_inicial:x.inicio,numero_final:x.fim,
+  const inutilizacoes=d.inutilizacoes.map(x=>({arquivo:x.arquivo,origem_marketplace:origemNome(x.origemMarketplace),competencia:competenciaDe(x.dhRecbto),cnpj_emitente:x.emitDoc,modelo:x.modelo,serie:x.serie,numero_inicial:x.inicio,numero_final:x.fim,
     quantidade:Number(x.fim)-Number(x.inicio)+1,recebimento:x.dhRecbto,protocolo:x.protocolo,situacao:x.situacao,homologada:x.autorizada?"Sim":"Não",justificativa:x.justificativa}));
   const sequencia=[];
   d.gruposSeq.forEach(g=>{const r=calcularSequencia(g);if(!r)return;(r.faltas.length?r.faltas:[["",""]]).forEach(f=>sequencia.push({cnpj_emitente:g.emitDoc,modelo:g.modelo,documento:nomeModelo(g.modelo),serie:g.serie,
@@ -1229,7 +1234,7 @@ function montarDadosDossie(d){
   const competencias=d.resumoMensal.filter(x=>d.competencia==="todas"||x.competencia===d.competencia).map(x=>({competencia:x.competencia,notas:x.notasQtd,ctes:x.ctesQtd,receita_provavel:x.receita,
     devolucoes_venda:x.devolucoes,receita_liquida_provavel:x.liquida,envios_full_5949_6949:x.fullSaidas,retornos_full_1949_2949:x.fullRetornos,saidas_sem_receita:x.semReceita,saidas_a_classificar:x.revisar,fretes_cte:x.frete}));
   const checklist=(d.checklist||[]).map(x=>({competencia:d.competencia,categoria:x.label,status:x.state==="ok"?"Importado":x.state==="warn"?"Importação incompleta":"Não localizado",quantidade:x.qtd,detalhe:x.detail}));
-  const ultimoLote=d.ultimoLote?[{campo:"Data da importação",valor:d.ultimoLote.data},{campo:"Competência principal",valor:d.ultimoLote.competenciaPrincipal},{campo:"XMLs processados",valor:d.ultimoLote.arquivosProcessados},{campo:"NF-e/NFC-e",valor:d.ultimoLote.nfe},{campo:"CT-e",valor:d.ultimoLote.ctes},{campo:"Eventos",valor:d.ultimoLote.eventos},{campo:"Cancelamentos de NF-e",valor:d.ultimoLote.cancelamentosNfe},{campo:"Cancelamentos de CT-e",valor:d.ultimoLote.cancelamentosCte},{campo:"Devoluções",valor:d.ultimoLote.devolucoes},{campo:"FULL saídas",valor:d.ultimoLote.fullSaidas},{campo:"FULL retornos",valor:d.ultimoLote.fullRetornos},{campo:"Inutilizações",valor:d.ultimoLote.inutilizacoes},{campo:"Duplicados",valor:d.ultimoLote.duplicados},{campo:"Inválidos",valor:d.ultimoLote.invalidos},{campo:"Fora da competência principal",valor:d.ultimoLote.foraCompetencia},...Object.entries(d.ultimoLote.porCompetencia||{}).map(([c,v])=>({campo:`Documentos em ${c}`,valor:v.total}))]:[];
+  const ultimoLote=d.ultimoLote?[{campo:"Data da importação",valor:d.ultimoLote.data},{campo:"Origem do lote",valor:origemNome(d.ultimoLote.origemMarketplace)},{campo:"Competência principal",valor:d.ultimoLote.competenciaPrincipal},{campo:"XMLs processados",valor:d.ultimoLote.arquivosProcessados},{campo:"NF-e/NFC-e",valor:d.ultimoLote.nfe},{campo:"CT-e",valor:d.ultimoLote.ctes},{campo:"Eventos",valor:d.ultimoLote.eventos},{campo:"Cancelamentos de NF-e",valor:d.ultimoLote.cancelamentosNfe},{campo:"Cancelamentos de CT-e",valor:d.ultimoLote.cancelamentosCte},{campo:"Devoluções",valor:d.ultimoLote.devolucoes},{campo:"FULL saídas",valor:d.ultimoLote.fullSaidas},{campo:"FULL retornos",valor:d.ultimoLote.fullRetornos},{campo:"Inutilizações",valor:d.ultimoLote.inutilizacoes},{campo:"Duplicados",valor:d.ultimoLote.duplicados},{campo:"Inválidos",valor:d.ultimoLote.invalidos},{campo:"Fora da competência principal",valor:d.ultimoLote.foraCompetencia},...Object.entries(d.ultimoLote.porCompetencia||{}).map(([c,v])=>({campo:`Documentos em ${c}`,valor:v.total}))]:[];
   const resumo=[
     ["Notas incluídas",d.M.notas],["Itens analisados",d.M.itens],["Produtos únicos",d.M.produtos.size],["NCMs",d.M.ncms.size],["CT-e vinculados",d.M.ctes],["Inutilizações homologadas",d.M.inutilizacoes],
     ["Documentos excluídos",d.M.excluidas],["Receita provável (vProd)",d.M.valorVendas],["Devoluções de venda",d.M.valorDevolucoes],["Receita provável líquida",d.M.saldoVendas],["Saídas sem receita provável",d.M.valorSemReceita],
@@ -1238,7 +1243,7 @@ function montarDadosDossie(d){
   ].map(([indicador,valor])=>({indicador,valor}));
   const capa=[
     ["Relatório","B4P 360 — DIAGNÓSTICO TRIBUTÁRIO"],["Empresa",d.config.empresa],["CNPJ analisado",d.targetDoc||d.config.cnpj],["UF",d.config.uf],["Regime informado",d.config.regime],
-    ["Competência/período",periodoDossie(d)],["Gerado em",geradoEm],["Versão do sistema",APP_VERSION],["Notas no dossiê",documentos.length],["Itens no dossiê",itens.length],["CT-e no dossiê",ctes.length],
+    ["Competência/período",periodoDossie(d)],["Origem/marketplace",d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces"],["Gerado em",geradoEm],["Versão do sistema",APP_VERSION],["Notas no dossiê",documentos.length],["Itens no dossiê",itens.length],["CT-e no dossiê",ctes.length],
     ["Aviso","Relatório de triagem e apoio à consultoria; as conclusões dependem de revisão técnica e das informações fornecidas pelo cliente."]
   ].map(([campo,valor])=>({campo,valor}));
   const metodologia=[
@@ -1251,7 +1256,7 @@ function montarDadosDossie(d){
     ["Limitações","A ferramenta não substitui conciliações contábeis, EFD, PGDAS-D/DCTF, extratos fiscais, livros, razão, balancetes ou parecer profissional."],
     ["Preservação","O backup JSON preserva o projeto processado; os XMLs originais devem continuar arquivados externamente."]
   ].map(([tema,criterio])=>({tema,criterio}));
-  const logs=d.logs.map(l=>({arquivo:l.arquivo,competencia:l.competencia,hash_sha256:l.hash,data_importacao:l.data,chave:l.chave,situacao:l.status,itens:l.itens,alertas:l.alertas}));
+  const logs=d.logs.map(l=>({arquivo:l.arquivo,origem_marketplace:origemNome(l.origemMarketplace),competencia:l.competencia,serie:l.serie||"",numero:l.numero||"",hash_sha256:l.hash,data_importacao:l.data,chave:l.chave,situacao:l.status,itens:l.itens,alertas:l.alertas}));
   const sheets=[{name:"01_Capa",rows:capa},{name:"02_Resumo",rows:resumo},{name:"03_Competencias",rows:competencias},{name:"04_Operacoes",rows:operacoes},{name:"05_CFOP",rows:cfops},
     {name:"06_Documentos_NFe",rows:documentos},{name:"07_Itens",rows:itens},{name:"08_Produtos_NCM",rows:produtos},{name:"09_CTe_Fretes",rows:ctes},{name:"10_Eventos",rows:eventos},
     {name:"11_Inutilizacoes",rows:inutilizacoes},{name:"12_Sequencia",rows:sequencia},{name:"13_Excluidos",rows:excluidos},{name:"14_Alertas",rows:alertas},{name:"15_Log_Importacao",rows:logs},{name:"16_Checklist",rows:checklist},{name:"17_Ultimo_Lote",rows:ultimoLote},{name:"18_Metodologia",rows:metodologia}];
@@ -1266,7 +1271,7 @@ function gerarRelatorioTecnicoHTML(d,dados){
   const kpis=[["Receita provável",fmtBRL(d.M.valorVendas)],["Devoluções",fmtBRL(d.M.valorDevolucoes)],["Receita provável líquida",fmtBRL(d.M.saldoVendas)],["Fretes CT-e",fmtBRL(d.M.valorFrete)],["Itens analisados",fmtNum(d.M.itens)],["Documentos excluídos",fmtNum(d.M.excluidas)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório técnico fiscal - ${escHtml(periodoDossie(d))}</title><style>
   :root{--navy:#0f2a43;--blue:#2f6db3;--line:#d8e0e8;--mut:#657386;--bg:#f3f5f8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#202b36;font:14px/1.45 Arial,sans-serif}.page{max-width:1180px;margin:24px auto;background:#fff;padding:34px 38px;box-shadow:0 2px 12px #0001}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid var(--navy);padding-bottom:18px}.head h1{margin:0;color:var(--navy);font-size:25px}.head p{margin:5px 0;color:var(--mut)}button{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:9px 14px;cursor:pointer}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}.kpi{border:1px solid var(--line);border-radius:7px;padding:12px}.kpi b{display:block;color:var(--navy);font-size:17px}.kpi span{font-size:12px;color:var(--mut)}h2{color:var(--navy);font-size:18px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}.call{background:#eef5fb;border-left:4px solid var(--blue);padding:12px 14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{background:#edf2f7;color:var(--navy)}.nota,.vazio{color:var(--mut);font-size:12px}.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:12px;color:var(--mut);font-size:11px}@media(max-width:800px){.page{margin:0;padding:20px}.kpis{grid-template-columns:repeat(2,1fr)}.head{display:block}.head button{margin-top:12px}}@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:15mm}.no-print{display:none}.table-wrap{overflow:visible}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
-  </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · CNPJ ${escHtml(d.targetDoc||d.config.cnpj||"—")} · ${escHtml(periodoDossie(d))}</p><p>Gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
+  </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · CNPJ ${escHtml(d.targetDoc||d.config.cnpj||"—")} · ${escHtml(periodoDossie(d))}</p><p>Origem: ${escHtml(d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces")} · gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
   <div class="kpis">${kpis.map(([a,b])=>`<div class="kpi"><b>${escHtml(b)}</b><span>${escHtml(a)}</span></div>`).join("")}</div>
   <div class="call"><b>Critério de receita:</b> venda/faturamento pelo valor dos produtos (vProd), separando devoluções. Os CFOPs 5949/6949 são movimentações para o estoque FULL do Mercado Livre e não são receita; 1949/2949 são retornos dessas movimentações.</div>
   <h2>1. Checklist dos documentos importados</h2>${tabelaHtml(dados.checklist,[["categoria","Categoria"],["status","Status"],["quantidade","Quantidade"],["detalhe","Detalhe"]])}
@@ -1306,6 +1311,8 @@ function App(){
   const [inutilizacoes,setInutilizacoes]=useState([]);
   const [ultimoLote,setUltimoLote]=useState(null);
   const [competencia,setCompetencia]=useState("todas");
+  const [origemFiltro,setOrigemFiltro]=useState("todas");
+  const [importOrigin,setImportOrigin]=useState("tokstok");
   const [config,setConfig]=useState({empresa:"B4P Confecções LTDA",cnpj:B4P_CNPJ,uf:"SP",regime:"Simples Nacional",ini:PERIODO.ini,fim:PERIODO.fim});
   const [processing,setProcessing]=useState(false);
   const [hydrated,setHydrated]=useState(false);
@@ -1318,49 +1325,58 @@ function App(){
     loadProjectState().then(p=>{
       setStorageOk(true);
       if(!p)return;
-      if(Array.isArray(p.realNotes))setRealNotes(p.realNotes.filter(n=>!n.simulado));
-      if(Array.isArray(p.logs))setLogs(p.logs);
-      if(Array.isArray(p.eventos))setEventos(p.eventos);
-      if(Array.isArray(p.ctes))setCtes(p.ctes);
-      if(Array.isArray(p.inutilizacoes))setInutilizacoes(p.inutilizacoes);
-      if(p.ultimoLote)setUltimoLote(p.ultimoLote);
+      if(Array.isArray(p.realNotes))setRealNotes(p.realNotes.filter(n=>!n.simulado).map(n=>comOrigem(n)));
+      if(Array.isArray(p.logs))setLogs(p.logs.map(n=>comOrigem(n)));
+      if(Array.isArray(p.eventos))setEventos(p.eventos.map(n=>comOrigem(n)));
+      if(Array.isArray(p.ctes))setCtes(p.ctes.map(n=>comOrigem(n)));
+      if(Array.isArray(p.inutilizacoes))setInutilizacoes(p.inutilizacoes.map(n=>comOrigem(n)));
+      if(p.ultimoLote)setUltimoLote({...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)});
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
       if(typeof p.competencia==="string")setCompetencia(p.competencia);
+      if(ORIGENS_DOCUMENTO[p.origemFiltro])setOrigemFiltro(p.origemFiltro);
     }).catch(()=>setStorageOk(false)).finally(()=>setHydrated(true));
   },[]);
   useEffect(()=>{
     if(!hydrated)return;
-    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
+    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
     return ()=>clearTimeout(t);
-  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia]);
+  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro]);
 
-  const notes = realNotes;
+  const notes=useMemo(()=>realNotes.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[realNotes,origemFiltro]);
+  const ctesFiltrados=useMemo(()=>ctes.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[ctes,origemFiltro]);
+  const eventosFiltrados=useMemo(()=>eventos.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[eventos,origemFiltro]);
+  const inutsFiltradas=useMemo(()=>inutilizacoes.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[inutilizacoes,origemFiltro]);
+  const logsFiltrados=useMemo(()=>logs.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[logs,origemFiltro]);
   const empresa = useMemo(()=> resolveEmpresa(notes,config), [notes,config]);
   const targetDoc=onlyDigits(config.cnpj)||onlyDigits(empresa&&empresa.doc);
   const engineCtx=useMemo(()=>({targetDoc,uf:(config.uf||empresa?.uf||"").toUpperCase()}),[targetDoc,config.uf,empresa]);
-  const canceladas=useMemo(()=>new Set(eventos.filter(e=>e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)).map(e=>e.chave).filter(Boolean)),[eventos]);
+  const canceladas=useMemo(()=>new Set(eventosFiltrados.filter(e=>e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)).map(e=>e.chave).filter(Boolean)),[eventosFiltrados]);
   const competencias=useMemo(()=>{
-    const ini=(config.ini||"").slice(0,7),fim=(config.fim||"").slice(0,7),datas=[...notes.map(n=>n.dhEmi),...ctes.map(c=>c.dhEmi),...eventos.map(e=>e.dhEvento),...inutilizacoes.map(x=>x.dhRecbto)];
+    const ini=(config.ini||"").slice(0,7),fim=(config.fim||"").slice(0,7),datas=[...notes.map(n=>n.dhEmi),...ctesFiltrados.map(c=>c.dhEmi),...eventosFiltrados.map(e=>e.dhEvento),...inutsFiltradas.map(x=>x.dhRecbto)];
     return [...new Set(datas.map(competenciaDe).filter(c=>c&&(!ini||c>=ini)&&(!fim||c<=fim)))].sort();
-  },[notes,ctes,eventos,inutilizacoes,config.ini,config.fim]);
+  },[notes,ctesFiltrados,eventosFiltrados,inutsFiltradas,config.ini,config.fim]);
   useEffect(()=>{if(competencia!=="todas"&&!competencias.includes(competencia))setCompetencia("todas");},[competencia,competencias.join("|")]);
   const naCompetencia=data=>competencia==="todas"||competenciaDe(data)===competencia;
   const includedNotes=useMemo(()=>notes.filter(n=>!motivoExclusao(n,config,canceladas,targetDoc)),[notes,config,canceladas,targetDoc]);
-  const includedCtes=useMemo(()=>ctes.filter(c=>!motivoExclusaoCte(c,config,canceladas,targetDoc)),[ctes,config,canceladas,targetDoc]);
+  const includedCtes=useMemo(()=>ctesFiltrados.filter(c=>!motivoExclusaoCte(c,config,canceladas,targetDoc)),[ctesFiltrados,config,canceladas,targetDoc]);
   const activeNotes=useMemo(()=>includedNotes.filter(n=>naCompetencia(n.dhEmi)),[includedNotes,competencia]);
   const excludedNotes=useMemo(()=>notes.filter(n=>naCompetencia(n.dhEmi)&&!!motivoExclusao(n,config,canceladas,targetDoc)),[notes,config,canceladas,targetDoc,competencia]);
   const activeCtes=useMemo(()=>includedCtes.filter(c=>naCompetencia(c.dhEmi)),[includedCtes,competencia]);
-  const excludedCtes=useMemo(()=>ctes.filter(c=>naCompetencia(c.dhEmi)&&!!motivoExclusaoCte(c,config,canceladas,targetDoc)),[ctes,config,canceladas,targetDoc,competencia]);
+  const excludedCtes=useMemo(()=>ctesFiltrados.filter(c=>naCompetencia(c.dhEmi)&&!!motivoExclusaoCte(c,config,canceladas,targetDoc)),[ctesFiltrados,config,canceladas,targetDoc,competencia]);
   const notesVisiveis=useMemo(()=>notes.filter(n=>naCompetencia(n.dhEmi)),[notes,competencia]);
-  const ctesVisiveis=useMemo(()=>ctes.filter(c=>naCompetencia(c.dhEmi)),[ctes,competencia]);
-  const eventosVisiveis=useMemo(()=>eventos.filter(e=>naCompetencia(e.dhEvento)),[eventos,competencia]);
-  const inutsVisiveis=useMemo(()=>inutilizacoes.filter(x=>naCompetencia(x.dhRecbto)),[inutilizacoes,competencia]);
-  const activeInuts=useMemo(()=>inutilizacoes.filter(x=>x.autorizada&&inRange(dtOnly(x.dhRecbto),config.ini,config.fim)&&naCompetencia(x.dhRecbto)),[inutilizacoes,config.ini,config.fim,competencia]);
+  const ctesVisiveis=useMemo(()=>ctesFiltrados.filter(c=>naCompetencia(c.dhEmi)),[ctesFiltrados,competencia]);
+  const eventosVisiveis=useMemo(()=>eventosFiltrados.filter(e=>naCompetencia(e.dhEvento)),[eventosFiltrados,competencia]);
+  const inutsVisiveis=useMemo(()=>inutsFiltradas.filter(x=>naCompetencia(x.dhRecbto)),[inutsFiltradas,competencia]);
+  const activeInuts=useMemo(()=>inutsFiltradas.filter(x=>x.autorizada&&inRange(dtOnly(x.dhRecbto),config.ini,config.fim)&&naCompetencia(x.dhRecbto)),[inutsFiltradas,config.ini,config.fim,competencia]);
   const resumoMensal=useMemo(()=>consolidarCompetencias(includedNotes,includedCtes,targetDoc),[includedNotes,includedCtes,targetDoc]);
   const logsComCompetencia=useMemo(()=>{
-    const porArquivo=new Map();notes.forEach(n=>porArquivo.set(n.arquivo,competenciaDe(n.dhEmi)));ctes.forEach(c=>porArquivo.set(c.arquivo,competenciaDe(c.dhEmi)));eventos.forEach(e=>porArquivo.set(e.arquivo,competenciaDe(e.dhEvento)));inutilizacoes.forEach(x=>porArquivo.set(x.arquivo,competenciaDe(x.dhRecbto)));
-    return logs.map(l=>({...l,competencia:l.competencia||porArquivo.get(l.arquivo)||""}));
-  },[logs,notes,ctes,eventos,inutilizacoes]);
+    const porArquivo=new Map();
+    notes.forEach(n=>porArquivo.set(n.arquivo,{competencia:competenciaDe(n.dhEmi),serie:n.serie,numero:n.nNF,origemMarketplace:n.origemMarketplace}));
+    ctesFiltrados.forEach(c=>porArquivo.set(c.arquivo,{competencia:competenciaDe(c.dhEmi),serie:c.serie,numero:c.nCT,origemMarketplace:c.origemMarketplace}));
+    eventosFiltrados.forEach(e=>porArquivo.set(e.arquivo,{competencia:competenciaDe(e.dhEvento),serie:e.serie,numero:e.numero,origemMarketplace:e.origemMarketplace}));
+    inutsFiltradas.forEach(x=>porArquivo.set(x.arquivo,{competencia:competenciaDe(x.dhRecbto),serie:x.serie,numero:`${x.inicio}${x.fim!==x.inicio?`–${x.fim}`:""}`,origemMarketplace:x.origemMarketplace}));
+    return logsFiltrados.map(l=>{const m=porArquivo.get(l.arquivo)||{};return {...l,competencia:l.competencia||m.competencia||"",serie:l.serie||m.serie||"",numero:l.numero||m.numero||"",origemMarketplace:l.origemMarketplace||m.origemMarketplace||ORIGEM_LEGADO};});
+  },[logsFiltrados,notes,ctesFiltrados,eventosFiltrados,inutsFiltradas]);
   const logsAnalise=useMemo(()=>logsComCompetencia.filter(l=>competencia==="todas"||l.competencia===competencia),[logsComCompetencia,competencia]);
   const gerenciamentoDados=useMemo(()=>{
     const map=new Map(),item=c=>{if(!c)return null;if(!map.has(c))map.set(c,{competencia:c,nfe:0,ctes:0,eventos:0,inutilizacoes:0,logs:0});return map.get(c);};
@@ -1385,13 +1401,13 @@ function App(){
     });
   },[hydrated,targetDoc,ctes,config,canceladas]);
   const rows = useMemo(()=> buildRows(activeNotes,engineCtx), [activeNotes,engineCtx]);
-  const seqNotes=useMemo(()=>realNotes.filter(n=>naCompetencia(n.dhEmi)),[realNotes,competencia]);
-  const seqEventos=useMemo(()=>eventos.filter(e=>naCompetencia(e.dhEvento)),[eventos,competencia]);
-  const seqInuts=useMemo(()=>inutilizacoes.filter(x=>naCompetencia(x.dhRecbto)),[inutilizacoes,competencia]);
-  const limitesSeq=useMemo(()=>limitesSequenciaAdjacente({notes:realNotes,eventos,inutilizacoes,targetDoc,competencia,config}),[realNotes,eventos,inutilizacoes,targetDoc,competencia,config]);
+  const seqNotes=useMemo(()=>notes.filter(n=>naCompetencia(n.dhEmi)),[notes,competencia]);
+  const seqEventos=useMemo(()=>eventosFiltrados.filter(e=>naCompetencia(e.dhEvento)),[eventosFiltrados,competencia]);
+  const seqInuts=useMemo(()=>inutsFiltradas.filter(x=>naCompetencia(x.dhRecbto)),[inutsFiltradas,competencia]);
+  const limitesSeq=useMemo(()=>limitesSequenciaAdjacente({notes,eventos:eventosFiltrados,inutilizacoes:inutsFiltradas,targetDoc,competencia,config}),[notes,eventosFiltrados,inutsFiltradas,targetDoc,competencia,config]);
   const gruposSeq=useMemo(()=>conectarLimitesSequencia(montarGruposSequencia({notes:seqNotes,eventos:seqEventos,inutilizacoes:seqInuts,targetDoc,config}),limitesSeq),[seqNotes,seqEventos,seqInuts,targetDoc,config,limitesSeq]);
   const resumoSeq=useMemo(()=>{const rs=gruposSeq.map(g=>calcularSequencia(g));return {grupos:rs.length,lacunas:rs.reduce((s,r)=>s+(r&&r.faltantes||0),0)};},[gruposSeq]);
-  const checklistImportacao=useMemo(()=>montarChecklistImportacao({notes:realNotes,ctes,eventos,inutilizacoes,targetDoc,competencia}),[realNotes,ctes,eventos,inutilizacoes,targetDoc,competencia]);
+  const checklistImportacao=useMemo(()=>montarChecklistImportacao({notes,ctes:ctesFiltrados,eventos:eventosFiltrados,inutilizacoes:inutsFiltradas,targetDoc,competencia}),[notes,ctesFiltrados,eventosFiltrados,inutsFiltradas,targetDoc,competencia]);
 
   /* ---- métricas ---- */
   const M = useMemo(()=>{
@@ -1445,10 +1461,10 @@ function App(){
     return m;
   }, [rows,activeNotes,excludedNotes,activeCtes,excludedCtes,activeInuts,logsAnalise,targetDoc,resumoSeq]);
 
-  const projectData=useMemo(()=>({schema:"b4p-fiscal-project",schemaVersion:1,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),
-    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia]);
-  const dossieData=useMemo(()=>({M,rows,config,targetDoc,competencia,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
-    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,rows,config,targetDoc,competencia,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
+  const projectData=useMemo(()=>({schema:"b4p-fiscal-project",schemaVersion:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),
+    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro]);
+  const dossieData=useMemo(()=>({M,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
+    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
 
   /* ---- upload ---- */
   async function handleFiles(files){
@@ -1467,8 +1483,9 @@ function App(){
       };
       const parsed=[];
       for(let i=0;i<arr.length;i+=25) parsed.push(...await Promise.all(arr.slice(i,i+25).map(parseOne)));
-      const notesDoLote=parsed.filter(p=>p.r.tipo==="nfe").map(p=>p.r.note);
-      const ctesDoLote=parsed.filter(p=>p.r.tipo==="cte").map(p=>p.r.cte),eventosDoLote=parsed.filter(p=>p.r.tipo==="evento").map(p=>p.r),inutsDoLote=parsed.filter(p=>p.r.tipo==="inutilizacao").map(p=>p.r);
+      const origemLote=origemCodigo(importOrigin);
+      const notesDoLote=parsed.filter(p=>p.r.tipo==="nfe").map(p=>comOrigem(p.r.note,origemLote));
+      const ctesDoLote=parsed.filter(p=>p.r.tipo==="cte").map(p=>comOrigem(p.r.cte,origemLote)),eventosDoLote=parsed.filter(p=>p.r.tipo==="evento").map(p=>comOrigem(p.r,origemLote)),inutsDoLote=parsed.filter(p=>p.r.tipo==="inutilizacao").map(p=>comOrigem(p.r,origemLote));
       const empresaDoLote=deriveEmpresa(notesDoLote);
       const uploadTargetDoc=onlyDigits(config.cnpj)||onlyDigits(empresaDoLote&&empresaDoLote.doc)||targetDoc;
       const uploadEngineCtx={targetDoc:uploadTargetDoc,uf:(config.uf||(empresaDoLote&&empresaDoLote.uf)||"").toUpperCase()};
@@ -1482,7 +1499,7 @@ function App(){
       parsed.forEach(({f,hash,r})=>{
         let status="",chave=r.chave||"",itens=0,alertas=0,competenciaDoc=r.tipo==="nfe"?competenciaDe(r.note?.dhEmi):r.tipo==="cte"?competenciaDe(r.cte?.dhEmi):r.tipo==="evento"?competenciaDe(r.dhEvento):r.tipo==="inutilizacao"?competenciaDe(r.dhRecbto):r.tipo==="sem_itens"?competenciaDe(r.note?.dhEmi):"";
         if(r.tipo==="nfe"){
-          const n=r.note; itens=n.itens.length;
+          const n=comOrigem(r.note,origemLote); itens=n.itens.length;
           if(n.chave&&known.has(n.chave)) status="Chave duplicada";
           else{
             if(n.chave)known.add(n.chave); newNotes.push(n);
@@ -1491,20 +1508,21 @@ function App(){
             if(!motivo)n.itens.forEach(it=>{alertas+=classify(it,n,uploadEngineCtx).alertas.length;});
           }
         }else if(r.tipo==="cte"){
-          const c=r.cte; chave=c.chave;
+          const c=comOrigem(r.cte,origemLote); chave=c.chave;
           if(c.chave&&knownCte.has(c.chave))status="CT-e duplicado";
           else{ if(c.chave)knownCte.add(c.chave);newCtes.push(c);const motivo=motivoExclusaoCte(c,config,cancelSet,uploadTargetDoc);status=motivo?"CT-e excluído: "+motivo:"CT-e autorizada"; }
         }else if(r.tipo==="inutilizacao"){
           const k=`${r.emitDoc}|${r.modelo}|${r.serie}|${r.inicio}|${r.fim}|${r.protocolo}`;chave=`${r.modelo}/${r.serie}: ${r.inicio}${r.fim!==r.inicio?"–"+r.fim:""}`;
           if(knownInut.has(k))status="Inutilização duplicada";
-          else{knownInut.add(k);newInuts.push(r);status=r.autorizada?"Inutilização homologada":r.situacao;}
+          else{knownInut.add(k);newInuts.push(comOrigem(r,origemLote));status=r.autorizada?"Inutilização homologada":r.situacao;}
         }else if(r.tipo==="evento"){
           const k=`${r.tpEvento}|${r.chave}|${r.cStat}`;
           if(knownEvent.has(k))status="Evento duplicado: "+r.subtipo;
-          else{knownEvent.add(k);newEvents.push(r);const ok=r.subtipo!=="Cancelamento"||CSTAT_CANCELAMENTO.has(r.cStat);status=(ok?"Evento: ":"Evento sem homologação: ")+r.subtipo;}
+          else{knownEvent.add(k);newEvents.push(comOrigem(r,origemLote));const ok=r.subtipo!=="Cancelamento"||CSTAT_CANCELAMENTO.has(r.cStat);status=(ok?"Evento: ":"Evento sem homologação: ")+r.subtipo;}
         }else if(r.tipo==="sem_itens") status="Nota sem itens";
         else status="Inválido: "+(r.erro||"desconhecido");
-        newLogs.push({arquivo:f.name,hash,data:new Date().toLocaleString("pt-BR"),competencia:competenciaDoc,chave,status,itens,alertas,loteId});
+        const docSerie=r.tipo==="nfe"?r.note?.serie:r.tipo==="cte"?r.cte?.serie:r.serie||"",docNumero=r.tipo==="nfe"?r.note?.nNF:r.tipo==="cte"?r.cte?.nCT:r.numero||"";
+        newLogs.push({arquivo:f.name,hash,data:new Date().toLocaleString("pt-BR"),competencia:competenciaDoc,chave,status,itens,alertas,loteId,origemMarketplace:origemLote,serie:docSerie,numero:docNumero});
       });
       setRealNotes(p=>[...p,...newNotes]); setCtes(p=>[...p,...newCtes]); setEventos(p=>[...p,...newEvents]); setInutilizacoes(p=>[...p,...newInuts]); setLogs(p=>[...p,...newLogs]);
       const porCompetencia={};
@@ -1515,13 +1533,14 @@ function App(){
       const cancelamentosNfe=cancelamentosLote.filter(e=>["55","65"].includes(String(e.modelo||""))).length,cancelamentosCte=cancelamentosLote.filter(e=>String(e.modelo||"")==="57").length;
       const unicos=pred=>new Set(notesDoLote.filter(pred).map(docKey)).size;
       const arquivosFora=newLogs.filter(l=>l.competencia&&competenciaPrincipal&&l.competencia!==competenciaPrincipal).map(l=>({arquivo:l.arquivo,competencia:l.competencia,status:l.status,chave:l.chave}));
-      const resumoLote={id:loteId,data:new Date().toLocaleString("pt-BR"),arquivosSelecionados:selecionados.length,arquivosProcessados:arr.length,
+      const resumoLote={id:loteId,data:new Date().toLocaleString("pt-BR"),origemMarketplace:origemLote,arquivosSelecionados:selecionados.length,arquivosProcessados:arr.length,
         competenciaPrincipal,porCompetencia,foraCompetencia:arquivosFora.length,arquivosFora:arquivosFora.slice(0,200),nfe:notesDoLote.length,ctes:ctesDoLote.length,eventos:eventosDoLote.length,
         cancelamentos:cancelamentosLote.length,cancelamentosNfe,cancelamentosCte,inutilizacoes:inutsDoLote.length,devolucoes:unicos(n=>ehDevolucao(n)),
         fullSaidas:unicos(n=>(n.itens||[]).some(it=>["5949","6949"].includes(onlyDigits(it.cfop)))),fullRetornos:unicos(n=>(n.itens||[]).some(it=>["1949","2949"].includes(onlyDigits(it.cfop)))),
         vendas:unicos(n=>n.autorizada&&!cancelSet.has(n.chave)&&(n.itens||[]).some(it=>classificarOperacaoItem(n,it,uploadTargetDoc).key==="receita")),
         duplicados:newLogs.filter(l=>/duplicad/i.test(l.status)).length,invalidos:newLogs.filter(l=>/inválid|falha|sem itens|não é XML/i.test(l.status)).length};
       setUltimoLote(resumoLote);
+      setOrigemFiltro(origemLote);
       if(competenciaPrincipal)setCompetencia(competenciaPrincipal);
       setTab("documentos");
     }catch(e){ setImportError("Não foi possível concluir a importação. Tente novamente com um lote menor."); }
@@ -1549,9 +1568,9 @@ function App(){
       const p=JSON.parse(await readFileText(file));
       if(!p||p.schema!=="b4p-fiscal-project"||!Array.isArray(p.realNotes)||!Array.isArray(p.logs)||!Array.isArray(p.eventos)||!Array.isArray(p.ctes)||!Array.isArray(p.inutilizacoes))throw new Error("Arquivo não reconhecido como backup deste sistema.");
       if(!confirm(`Restaurar o backup e substituir os dados atualmente carregados?\n\nNF-e/NFC-e: ${fmtNum(p.realNotes.length)}\nCT-e: ${fmtNum(p.ctes.length)}\nEventos: ${fmtNum(p.eventos.length)}\nInutilizações: ${fmtNum(p.inutilizacoes.length)}`))return;
-      setRealNotes(p.realNotes.filter(n=>!n.simulado));setLogs(p.logs);setEventos(p.eventos);setCtes(p.ctes);setInutilizacoes(p.inutilizacoes);setUltimoLote(p.ultimoLote||null);
+      setRealNotes(p.realNotes.filter(n=>!n.simulado).map(n=>comOrigem(n)));setLogs(p.logs.map(n=>comOrigem(n)));setEventos(p.eventos.map(n=>comOrigem(n)));setCtes(p.ctes.map(n=>comOrigem(n)));setInutilizacoes(p.inutilizacoes.map(n=>comOrigem(n)));setUltimoLote(p.ultimoLote?{...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)}:null);
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
-      setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setImportError("");setTab("inicio");
+      setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setOrigemFiltro(ORIGENS_DOCUMENTO[p.origemFiltro]?p.origemFiltro:"todas");setImportError("");setTab("inicio");
       alert("Backup restaurado com sucesso.");
     }catch(e){alert(`Não foi possível restaurar o backup: ${e.message||"arquivo inválido"}`);}
   }
@@ -1569,6 +1588,7 @@ function App(){
     <div className="competencia-bar">
       <div className="comp-title"><b>Competência analisada</b><span>Filtro aplicado a todos os painéis e relatórios</span></div>
       <select className="select" value={competencia} onChange={e=>setCompetencia(e.target.value)}><option value="todas">Todas · {config.ini} a {config.fim}</option>{competencias.map(c=><option key={c} value={c}>{fmtCompetencia(c)}</option>)}</select>
+      <select className="select" aria-label="Filtrar por origem" value={origemFiltro} onChange={e=>setOrigemFiltro(e.target.value)}><option value="todas">Todos os marketplaces</option>{Object.entries(ORIGENS_DOCUMENTO).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
       <div className="comp-status"><b>{fmtCompetencia(competencia)}</b> · {fmtNum(M.notas)} nota(s) · {fmtNum(M.ctes)} CT-e · {fmtNum(M.itens)} item(ns)</div>
     </div>
     <div className="tabs">{TABS.map(([k,l])=><button key={k} className={"tab"+(tab===k?" active":"")} onClick={()=>setTab(k)}>{l}</button>)}</div>
@@ -1578,7 +1598,7 @@ function App(){
       {tab==="produto" && <ProdutoView rows={rows}/>} 
       {tab==="tributos" && <TributosHub rows={rows} M={M}/>} 
       {tab==="seq" && <Sequencia grupos={gruposSeq} targetDoc={targetDoc} config={config} competencia={competencia}/>} 
-      {tab==="documentos" && <DocumentosHub fileRef={fileRef} handleFiles={handleFiles} logs={logsComCompetencia} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventosVisiveis} ctes={ctesVisiveis} inutilizacoes={inutsVisiveis} excluidas={excludedNotes.length+excludedCtes.length} storageOk={storageOk} notes={notesVisiveis} canceladas={canceladas} config={config} targetDoc={targetDoc} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklistImportacao} competencia={competencia}/>} 
+      {tab==="documentos" && <DocumentosHub fileRef={fileRef} handleFiles={handleFiles} logs={logsComCompetencia} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventosVisiveis} ctes={ctesVisiveis} inutilizacoes={inutsVisiveis} excluidas={excludedNotes.length+excludedCtes.length} storageOk={storageOk} notes={notesVisiveis} canceladas={canceladas} config={config} targetDoc={targetDoc} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklistImportacao} competencia={competencia} importOrigin={importOrigin} setImportOrigin={setImportOrigin}/>} 
       {tab==="resumo" && <Resumo dossie={dossieData}/>} 
       {tab==="config" && <ConfiguracoesHub config={config} setConfig={setConfig} temReais={realNotes.length+ctes.length>0} basesTs={basesTs}/>} 
     </div>
@@ -1652,7 +1672,7 @@ function ChecklistImportacao({items,competencia}){
   useEffect(()=>{setSelKey("");setQ("");setPagina(1);},[competencia]);
   useEffect(()=>setPagina(1),[q,selKey]);
   function abrir(x){setSelKey(x.key);setQ("");setPagina(1);}
-  function exportar(){if(!sel)return;download(`checklist_${sel.key}_${competencia}.csv`,toCSV((sel.registros||[]).map(r=>({arquivo:r.arquivo,tipo:r.tipo,data:r.data,numero:r.numero,serie:r.serie,situacao:r.situacao,detalhe:r.detalhe,chave:r.chave}))),"text/csv");}
+  function exportar(){if(!sel)return;download(`checklist_${sel.key}_${competencia}.csv`,toCSV((sel.registros||[]).map(r=>({arquivo:r.arquivo,origem:r.origem,tipo:r.tipo,data:r.data,numero:r.numero,serie:r.serie,situacao:r.situacao,detalhe:r.detalhe,chave:r.chave}))),"text/csv");}
   return <Card title="Controle dos documentos importados" sub={`${fmtCompetencia(competencia)} · controle automático por presença dos documentos na competência`}>
     <div className="hint"><b>Como funciona:</b> o indicador confirma que o tipo de documento foi localizado no projeto. Para documentos de terceiros, ele não controla sequência nem garante a totalidade numérica do lote.</div>
     <div className="status-line"><span className="tag tag-ok">{ok} importado(s)</span>{warn>0&&<span className="tag tag-warn">{warn} incompleto(s)</span>}<span>{items.length-ok-warn} não localizado(s)</span></div>
@@ -1663,7 +1683,7 @@ function ChecklistImportacao({items,competencia}){
     {sel&&<div className="drawer-bg" onClick={()=>setSelKey("")}><div className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-h"><div><b>{sel.label}</b><div className="muted sm">{fmtCompetencia(competencia)} · {fmtNum(sel.qtd)} registro(s)</div></div><button className="x" onClick={()=>setSelKey("")}>×</button></div>
       <div className="missing-toolbar"><input className="input" placeholder="Buscar arquivo, número, chave ou situação…" value={q} onChange={e=>setQ(e.target.value)}/><button className="btn btn-ghost" onClick={exportar} disabled={!sel.qtd}>Exportar CSV</button></div>
-      {!filtrados.length?<div className="empty">{sel.qtd?"Nenhum registro corresponde à busca.":"Nenhum documento desta categoria foi localizado na competência."}</div>:<div className="scroll"><table className="table detail-table"><thead><tr><th>Arquivo</th><th>Tipo</th><th>Data</th><th>Número / série</th><th>Situação</th><th>Detalhe</th><th>Chave / protocolo</th></tr></thead><tbody>{exibidos.map((r,i)=><tr key={`${r.arquivo}-${r.chave}-${i}`}><td className="mono">{r.arquivo}</td><td>{r.tipo}</td><td>{dtOnly(r.data)||r.data||"—"}</td><td className="mono">{r.numero||"—"}{r.serie?` / ${r.serie}`:""}</td><td><span className={"tag "+(/ausente|não/i.test(r.situacao)?"tag-warn":"tag-ok")}>{r.situacao||"—"}</span></td><td>{r.detalhe||"—"}</td><td className="mono sm">{r.chave||"—"}</td></tr>)}</tbody></table></div>}
+      {!filtrados.length?<div className="empty">{sel.qtd?"Nenhum registro corresponde à busca.":"Nenhum documento desta categoria foi localizado na competência."}</div>:<div className="scroll"><table className="table detail-table"><thead><tr><th>Arquivo</th><th>Origem</th><th>Tipo</th><th>Data</th><th>Número / série</th><th>Situação</th><th>Detalhe</th><th>Chave / protocolo</th></tr></thead><tbody>{exibidos.map((r,i)=><tr key={`${r.arquivo}-${r.chave}-${i}`}><td className="mono">{r.arquivo}</td><td>{r.origem||"—"}</td><td>{r.tipo}</td><td>{dtOnly(r.data)||r.data||"—"}</td><td className="mono">{r.numero||"—"}{r.serie?` / ${r.serie}`:""}</td><td><span className={"tag "+(/ausente|não/i.test(r.situacao)?"tag-warn":"tag-ok")}>{r.situacao||"—"}</span></td><td>{r.detalhe||"—"}</td><td className="mono sm">{r.chave||"—"}</td></tr>)}</tbody></table></div>}
       {paginas>1&&<div className="pager"><button className="btn btn-ghost" disabled={pagina<=1} onClick={()=>setPagina(p=>p-1)}>← Anterior</button><span className="muted sm">Página {pagina} de {paginas}</span><button className="btn btn-ghost" disabled={pagina>=paginas} onClick={()=>setPagina(p=>p+1)}>Próxima →</button></div>}
     </div></div>}
   </Card>;
@@ -1673,10 +1693,10 @@ function UltimoLote({lote}){
   if(!lote)return null;
   const comps=Object.entries(lote.porCompetencia||{}).sort((a,b)=>a[0].localeCompare(b[0]));
   const caixas=[["CT-e",lote.ctes],["NF-e/NFC-e",lote.nfe],["Cancel. NF-e",lote.cancelamentosNfe],["Cancel. CT-e",lote.cancelamentosCte],["Devoluções",lote.devolucoes],["FULL saídas",lote.fullSaidas],["FULL retornos",lote.fullRetornos],["Inutilizações",lote.inutilizacoes],["Duplicados",lote.duplicados],["Inválidos",lote.invalidos]];
-  return <Card title="Resultado do último lote" sub={`${lote.data} · somente os arquivos processados nesta importação`}>
+  return <Card title="Resultado do último lote" sub={`${lote.data} · ${origemNome(lote.origemMarketplace)} · somente os arquivos processados nesta importação`}>
     <div className="hint"><b>Diferença importante:</b> este quadro mostra apenas o último lote. O checklist abaixo mostra o total acumulado da competência.</div>
     <div className="batch-grid">{caixas.map(([l,v])=><div className="batch-box" key={l}><b>{fmtNum(v||0)}</b><span>{l}</span></div>)}</div>
-    <div className="status-line"><span>{fmtNum(lote.arquivosSelecionados)} arquivo(s)/pacote(s) selecionado(s)</span><span>• {fmtNum(lote.arquivosProcessados)} XML(s) processado(s)</span>{lote.eventos>0&&<span>• {fmtNum(lote.eventos)} evento(s)</span>}</div>
+    <div className="status-line"><span className="tag tag-info">Origem: {origemNome(lote.origemMarketplace)}</span><span>{fmtNum(lote.arquivosSelecionados)} arquivo(s)/pacote(s) selecionado(s)</span><span>• {fmtNum(lote.arquivosProcessados)} XML(s) processado(s)</span>{lote.eventos>0&&<span>• {fmtNum(lote.eventos)} evento(s)</span>}</div>
     <div className="status-line">{comps.map(([c,v])=><span className={"tag "+(c===lote.competenciaPrincipal?"tag-ok":"tag-warn")} key={c}>{fmtCompetencia(c)}: {fmtNum(v.total)} documento(s)</span>)}</div>
     {lote.foraCompetencia>0&&<div className="aviso-uf"><b>Atenção:</b> {fmtNum(lote.foraCompetencia)} arquivo(s) pertencem a uma competência diferente de {fmtCompetencia(lote.competenciaPrincipal)}. {lote.arquivosFora?.slice(0,8).map(x=><span className="mono sm" key={x.arquivo}> {x.arquivo} ({fmtCompetencia(x.competencia)})</span>)}{lote.arquivosFora?.length>8&&<span> · e mais {fmtNum(lote.arquivosFora.length-8)}</span>}</div>}
     {!lote.eventos&&!lote.cancelamentos&&lote.ctes>0&&<div className="ok-box">✓ Este lote contém CT-e, mas não contém evento de cancelamento nem NF-e de venda cancelada.</div>}
@@ -1704,12 +1724,14 @@ function GerenciarDados({dados,competencia,onExcluir,onExcluirTudo,processing}){
   </>;
 }
 
-function Upload({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,projectData,restaurarBackup,checklist,competencia}){
+function Upload({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenciamentoDados,ultimoLote,processing,importError,eventos,ctes,inutilizacoes,excluidas,storageOk,projectData,restaurarBackup,checklist,competencia,importOrigin,setImportOrigin}){
   const backupRef=useRef();
   return <div>
     <ChecklistImportacao items={checklist||[]} competencia={competencia}/>
     <UltimoLote lote={ultimoLote}/>
     <Card title="Importar documentos fiscais em XML ou ZIP" sub="NF-e/NFC-e (55/65), CT-e (57), eventos e inutilizações · arquivos avulsos ou compactados">
+      <div className="hint"><b>Origem deste lote:</b> selecione o marketplace antes de importar. A origem será gravada em cada documento, evento e log.</div>
+      <label>Marketplace / canal de origem<select className="select" value={importOrigin} disabled={processing} onChange={e=>setImportOrigin(e.target.value)}>{Object.entries(ORIGENS_DOCUMENTO).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <div className="drop" onDragOver={e=>{e.preventDefault();}} onDrop={e=>{e.preventDefault(); if(!processing)handleFiles(e.dataTransfer.files);}}
         onClick={()=>!processing&&fileRef.current.click()}>
         <div className="drop-i">⇪</div>
@@ -1732,8 +1754,8 @@ function Upload({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenci
     </Card>
     <Card title="Log de arquivos processados" sub={logs.length+" arquivo(s) em todas as competências · rastreabilidade XML → item → regra"}>
       {!logs.length ? <div className="empty">Nenhum arquivo importado ainda.</div> :
-      <table className="table"><thead><tr><th>Arquivo</th><th>Competência</th><th>Hash</th><th>Importação</th><th>Chave</th><th>Situação</th><th className="r">Itens</th><th className="r">Alertas</th></tr></thead>
-      <tbody>{logs.map((l,i)=><tr key={i}><td className="mono">{l.arquivo}</td><td>{l.competencia?<span className="tag tag-info">{fmtCompetencia(l.competencia)}</span>:"—"}</td><td className="mono" title={l.hash}>{l.hash&&l.hash!=="—"?l.hash.slice(0,12)+"…":"—"}</td><td>{l.data}</td><td className="mono sm">{l.chave||"—"}</td><td><span className={"tag "+(/^(Autorizada|CT-e autorizada|Inutilização homologada)/i.test(l.status)?"tag-ok":/Evento:|Excluíd|duplic/i.test(l.status)?"tag-warn":"tag-bad")}>{l.status}</span></td><td className="r">{l.itens||"—"}</td><td className="r">{l.alertas||"—"}</td></tr>)}</tbody></table>}
+      <table className="table"><thead><tr><th>Arquivo</th><th>Origem</th><th>Competência</th><th>Série / número</th><th>Hash</th><th>Importação</th><th>Chave</th><th>Situação</th><th className="r">Itens</th><th className="r">Alertas</th></tr></thead>
+      <tbody>{logs.map((l,i)=><tr key={i}><td className="mono">{l.arquivo}</td><td><span className="tag tag-info">{origemNome(l.origemMarketplace)}</span></td><td>{l.competencia?<span className="tag tag-info">{fmtCompetencia(l.competencia)}</span>:"—"}</td><td className="mono">{l.serie||"—"} / {l.numero||"—"}</td><td className="mono" title={l.hash}>{l.hash&&l.hash!=="—"?l.hash.slice(0,12)+"…":"—"}</td><td>{l.data}</td><td className="mono sm">{l.chave||"—"}</td><td><span className={"tag "+(/^(Autorizada|CT-e autorizada|Inutilização homologada)/i.test(l.status)?"tag-ok":/Evento:|Excluíd|duplic/i.test(l.status)?"tag-warn":"tag-bad")}>{l.status}</span></td><td className="r">{l.itens||"—"}</td><td className="r">{l.alertas||"—"}</td></tr>)}</tbody></table>}
     </Card>
   </div>;
 }
@@ -1994,7 +2016,7 @@ function Evidencias({notes,ctes,inutilizacoes,eventos,canceladas,config,targetDo
     {!notes.length?<div className="empty">Sem NF-e/NFC-e.</div>:notes.map((n,i)=>{ const motivo=motivoExclusao(n,config,canceladas,targetDoc); return (
       <div className={"xmlcard "+(motivo?"excluded":"")} key={(n.chave||n.arquivo)+i}>
         <div className="xmlcard-h" onClick={()=>setOpen(open===i?null:i)}>
-          <div><b>{nomeModelo(n.mod)} série {n.serie} nº {n.nNF}</b> · {n.emitNome||"—"} <span className="muted">({n.ufEmit}→{n.ufDest}, CRT {n.crt})</span> <span className={"tag "+(ehDevolucao(n)?"tag-neutral":"tag-ok")}>{n.operacao||tipoOperacao(n)}</span></div>
+          <div><b>{nomeModelo(n.mod)} série {n.serie} nº {n.nNF}</b> · {n.emitNome||"—"} <span className="muted">({n.ufEmit}→{n.ufDest}, CRT {n.crt})</span> <span className="tag tag-info">{origemNome(n.origemMarketplace)}</span> <span className={"tag "+(ehDevolucao(n)?"tag-neutral":"tag-ok")}>{n.operacao||tipoOperacao(n)}</span></div>
           <div className="muted sm">{n.dhEmi} · {n.itens.length} item(ns) · {fmtBRL(n.vNF)} {motivo&&<span className="tag tag-neutral">FORA DA ANÁLISE</span>} · {open===i?"▲":"▼"}</div>
         </div>
         {open===i && <div className="xmlcard-b">
