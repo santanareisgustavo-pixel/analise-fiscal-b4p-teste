@@ -124,7 +124,7 @@ body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-s
 .hero{background:linear-gradient(135deg,#102d48,#1f527d);color:#fff;border:0;box-shadow:0 8px 24px rgba(15,42,67,.16)}
 .hero .card-t,.hero .muted,.hero .lead{color:#fff}.hero .muted{opacity:.76}.hero .card-h{margin-bottom:8px}
 .hero .note-demo{color:#17324b;background:rgba(255,255,255,.92);border-color:rgba(255,255,255,.45);margin-top:12px;margin-bottom:0}
-.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.hero-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:14px}
 .hero-kpi{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:11px 12px}
 .hero-kpi b{font-size:19px;display:block}.hero-kpi span{font-size:11px;opacity:.78}
 .quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.quick-actions .btn{background:#fff;color:var(--navy)}.quick-actions .btn:hover{background:#eaf1f7}
@@ -144,8 +144,10 @@ body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-s
 @media(max-width:1100px){.batch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){
   .app{padding:0 10px 28px}.topbar{align-items:flex-start;gap:10px}.top-right{display:none}
-  .g4,.form,.kv2{grid-template-columns:1fr}.card{padding:14px}.tabs{flex-wrap:nowrap;overflow-x:auto}
-  .tab{white-space:nowrap}.bar-lb{width:120px}.bar-v{width:86px}.resumo-linha{gap:14px}
+  .g4,.form,.kv2{grid-template-columns:1fr}.card{padding:14px}
+  /* [FIX 10] As abas permanecem inteiras e ganham rolagem horizontal suave no mobile. */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-gutter:stable;padding-bottom:8px}
+  .tab{white-space:nowrap;flex:0 0 auto}.bar-lb{width:120px}.bar-v{width:86px}.resumo-linha{gap:14px}
   .hero-kpis,.priority-list,.metric-strip{grid-template-columns:1fr 1fr}.section-tabs{flex-wrap:nowrap;overflow-x:auto;width:100%}.op-toolbar .input{min-width:100%}
   .competencia-bar .comp-status{margin-left:0;width:100%}.competencia-bar .select{flex:1;min-width:150px}
 }
@@ -166,8 +168,11 @@ const DB = window.__DB__;
 const { useState, useMemo, useRef, useEffect } = React;
 
 /* ---------- constantes ---------- */
-const APP_VERSION = "3.4.0";
-const PERIODO = { ini: "2025-06-01", fim: "2026-05-31" };
+const APP_VERSION = "3.5.0";
+// [FIX 4] Fonte única dos valores iniciais do período; depois da carga, config.ini/config.fim são a única fonte da interface e dos relatórios.
+const PERIODO_PADRAO = { ini: "2025-06-01", fim: "2026-05-31" };
+// [FIX 1] Conferir a vigência legal antes de publicar (LC 123/2006, arts. 3º e 13-A, e atos do CGSN aplicáveis ao período).
+const LIMITES_SIMPLES = { sublimiteIcmsIss:3600000, teto:4800000, margemAlerta:0.10 };
 const B4P_CNPJ = "26112686000104";
 const ZIP_LIMITS = { arquivos:10000, porArquivo:20*1024*1024, total:300*1024*1024 };
 const CSTAT_AUTORIZADOS = new Set(["100","150"]);
@@ -175,6 +180,14 @@ const CSTAT_CANCELAMENTO = new Set(["135","136","155"]);
 const CSTAT_INUTILIZACAO = new Set(["102"]);
 const ORIGENS_DOCUMENTO = {mercado_livre:"Mercado Livre",tokstok:"TOK&STOK",outros:"Outros canais"};
 const ORIGEM_LEGADO = "mercado_livre";
+// [FIX 3] CFOPs que entram na receita, deduzem vendas ou representam somente movimentação do estoque FULL.
+const CFOPS_VENDA = new Set(["5101","5102","5105","5106","6101","6102","6105","6106"]);
+const CFOPS_DEVOLUCAO_VENDA = new Set(["1201","1202","2201","2202"]);
+const CFOPS_FULL_SAIDA = new Set(["5905","6905","5906","6906","5949","6949"]);
+const CFOPS_FULL_RETORNO = new Set(["1905","2905","1906","2906","1949","2949"]);
+// [FIX 7] Conjuntos específicos para verificar alternância entre produção própria e revenda.
+const CFOPS_PRODUCAO = new Set(["5101","5105","6101","6105"]);
+const CFOPS_REVENDA = new Set(["5106","6106"]);
 const EVENTOS_SRE = {
   "2025-12-01": { ato: "Portaria SRE 85/2025", tipo: "inclusao", cest: "25.032.00", ncm: "87046000", anexo: "ANEXO VI" },
   "2026-01-01": { ato: "Portaria SRE 64/2025", tipo: "exclusao", anexos: ["ANEXO IX","ANEXO X","ANEXO XV","ANEXO XX"], parciais: ["ANEXO XIV","ANEXO XVI","ANEXO XVII"] },
@@ -186,6 +199,8 @@ const onlyDigits = s => (s||"").replace(/\D/g,"");
 const normNcm = s => { const d = onlyDigits(s); return d; };
 const fmtBRL = v => (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fmtNum = v => (Number(v)||0).toLocaleString("pt-BR");
+// [FIX 9] O documento exibido vem do XML e recebe máscara somente para apresentação.
+const fmtCnpj = v => {const d=onlyDigits(v);return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5"):"CNPJ não informado";};
 const origemCodigo = v => ORIGENS_DOCUMENTO[v] ? v : ORIGEM_LEGADO;
 const origemNome = v => ORIGENS_DOCUMENTO[origemCodigo(v)];
 const comOrigem = (registro,origem=ORIGEM_LEGADO) => ({...registro,origemMarketplace:origemCodigo(registro&&registro.origemMarketplace||origem)});
@@ -254,9 +269,11 @@ const OP_META={
 function textoOperacao(s){return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();}
 function classificarOperacaoItem(note,item,targetDoc){
   const cfop=onlyDigits(item&&item.cfop);
-  if(["5949","6949"].includes(cfop))return {key:"full_saida",motivo:"Movimentação interna para estoque FULL do Mercado Livre; não constitui venda para fins deste painel"};
-  if(["1949","2949"].includes(cfop))return {key:"full_retorno",motivo:"Retorno de movimentação do estoque FULL do Mercado Livre"};
+  // [FIX 3] FULL tem precedência absoluta: nunca compõe receita nem cai em “A classificar”.
+  if(CFOPS_FULL_SAIDA.has(cfop))return {key:"full_saida",motivo:"Remessa/movimentação para estoque FULL; não constitui venda para fins deste painel"};
+  if(CFOPS_FULL_RETORNO.has(cfop))return {key:"full_retorno",motivo:"Retorno de remessa/movimentação do estoque FULL"};
   const papel=papelDocumento(note,targetDoc);
+  if(CFOPS_DEVOLUCAO_VENDA.has(cfop))return {key:"devolucao_venda",motivo:"CFOP de devolução de venda; valor deduzido da receita provável"};
   if(ehDevolucao(note)){
     if(papel==="entrada")return {key:"devolucao_venda",motivo:"Documento de devolução recebido/emitido como entrada pela empresa analisada"};
     if(papel==="saida")return {key:"devolucao_compra",motivo:"Documento de devolução que representa saída da empresa analisada"};
@@ -265,18 +282,11 @@ function classificarOperacaoItem(note,item,targetDoc){
   if(papel==="entrada")return {key:"entrada",motivo:"Documento classificado como entrada para a empresa analisada"};
   if(papel==="terceiro")return {key:"terceiro",motivo:"Empresa analisada não identificada como emitente ou destinatária"};
   if(papel!=="saida")return {key:"revisar",motivo:"Papel do documento não definido"};
+  if(CFOPS_VENDA.has(cfop))return {key:"receita",motivo:"CFOP incluído na lista fechada de vendas que compõem a receita"};
   const descCfop=DB.cfop[item&&item.cfop]&&DB.cfop[item.cfop].desc||"",nat=textoOperacao(note.natOp||""),desc=textoOperacao(descCfop);
-  const vendaRx=/\bvenda|revenda|faturamento/,semRx=/remessa|transfer|bonific|brinde|amostra|demonstra|comodato|conserto|consigna|mostruario|doa[cç]|ativo imobilizado|retorno|sem valor comercial/;
-  const vendaNat=vendaRx.test(nat),semNat=semRx.test(nat);
-  if(vendaNat&&!semNat)return {key:"receita",motivo:"Natureza da operação informa venda/faturamento"};
-  if(semNat&&!vendaNat)return {key:"sem_receita",motivo:"Natureza da operação indica saída sem receita imediata"};
-  if(vendaNat&&semNat)return {key:"revisar",motivo:"Natureza da operação contém sinais conflitantes de venda e remessa"};
-  if(/^venda\b/.test(desc))return {key:"receita",motivo:"Descrição oficial do CFOP inicia por venda"};
-  if(/^(remessa|transfer|retorno|bonific)/.test(desc))return {key:"sem_receita",motivo:"Descrição oficial do CFOP indica saída sem receita imediata"};
-  const venda=vendaRx.test(desc),semReceita=semRx.test(desc);
-  if(venda&&!semReceita)return {key:"receita",motivo:"Descrição do CFOP indica venda/faturamento"};
-  if(semReceita&&!venda)return {key:"sem_receita",motivo:"Descrição do CFOP indica saída sem receita imediata"};
-  return {key:"revisar",motivo:venda&&semReceita?"Descrição do CFOP contém sinais conflitantes":"CFOP/natureza não permitem concluir automaticamente que a saída é receita"};
+  const semRx=/remessa|transfer|bonific|brinde|amostra|demonstra|comodato|conserto|consigna|mostruario|doa[cç]|ativo imobilizado|retorno|sem valor comercial/;
+  if(semRx.test(nat)||semRx.test(desc))return {key:"sem_receita",motivo:"Natureza/descrição indica saída sem receita, e o CFOP não integra a lista fechada de vendas"};
+  return {key:"revisar",motivo:"CFOP fora da lista fechada de vendas; exige classificação sem compor receita automaticamente"};
 }
 function metaOperacao(key){return OP_META[key]||OP_META.revisar;}
 function docKey(n){return n.chave||`${n.emitDoc}|${n.serie}|${n.nNF}|${n.dhEmi}`;}
@@ -318,7 +328,7 @@ function stVigenteSP(rule, dateStr){
   const d = dtOnly(dateStr);
   if(rule.rev) return { ativo:false, historico:true, evento:"Redação revogada/histórica — exige validação da vigência individual", ato:"Portaria CAT 68/2019" };
   if(!d) return { ativo:true, evento:"Sem data — vigência não confirmada", ato:"" };
-  if(d < PERIODO.ini) return { ativo:true, evento:"Anterior ao período; usar snapshot inicial", ato:"CAT 68 consolidada" };
+  if(d < PERIODO_PADRAO.ini) return { ativo:true, evento:"Anterior ao período-base; usar snapshot inicial", ato:"CAT 68 consolidada" };
   if(rule.ncm==="87046000"&&onlyDigits(rule.cest)==="2503200"&&d<"2025-12-01")
     return { ativo:false, evento:"Ainda não incluído na ST-SP; inclusão em 01/12/2025", ato:"Portaria SRE 85/2025" };
   // exclusões por evento
@@ -420,13 +430,13 @@ function enginePisCofins(item, note, ctx={}){
     if(auditarCst && isRevenda(item,note,ctx) && ["01","02"].includes(cstP||"")){
       A.push({ tipo:"CST de PIS possivelmente divergente", modulo:"PIS/COFINS", sev:SEV.DIVERG,
         msg:`Produto potencialmente monofásico em revenda com CST PIS ${cstP} (tributação normal). Esperado CST 04 (revenda a alíquota zero).`,
-        regra:"PIS-002", base:"Tabelas 4.3.10/4.3.11 + CST 04", fonte:reg.src, vigencia:PERIODO.ini+" a "+PERIODO.fim,
+        regra:"PIS-002", base:"Tabelas 4.3.10/4.3.11 + CST 04", fonte:reg.src, vigencia:PERIODO_PADRAO.ini+" a "+PERIODO_PADRAO.fim,
         valorXml:`CST PIS ${cstP}`, trecho:reg.desc, sugestao:sugCst, confianca:"Médio" });
     }
     if(auditarCst && isRevenda(item,note,ctx) && ["01","02"].includes(cstC||"")){
       A.push({ tipo:"CST de Cofins possivelmente divergente", modulo:"PIS/COFINS", sev:SEV.DIVERG,
         msg:`Produto potencialmente monofásico em revenda com CST COFINS ${cstC}. Esperado CST 04.`,
-        regra:"PIS-002", base:"Tabelas 4.3.10/4.3.11 + CST 04", fonte:reg.src, vigencia:PERIODO.ini+" a "+PERIODO.fim,
+        regra:"PIS-002", base:"Tabelas 4.3.10/4.3.11 + CST 04", fonte:reg.src, vigencia:PERIODO_PADRAO.ini+" a "+PERIODO_PADRAO.fim,
         valorXml:`CST COFINS ${cstC}`, trecho:reg.desc, sugestao:sugCst, confianca:"Médio" });
     }
   }
@@ -618,6 +628,7 @@ const PRIORIDADE = [
   "CSOSN possivelmente divergente",
   "CFOP possivelmente divergente",
   "CEST incompatível",
+  "CEST inconsistente para o mesmo NCM",
   "CEST ausente",
   "NCM inválido","NCM ausente","NCM não encontrado na base vigente",
   "Descrição incompatível com a regra",
@@ -838,7 +849,7 @@ function OperacoesCfop({rows,targetDoc,M}){
   }
   return <div>
     <Card title="Operações e CFOP" sub="Leitura consolidada dos XMLs incluídos no período" right={<button className="btn" onClick={exportar} disabled={!rows.length}>Exportar XLSX</button>}>
-      <div className="hint"><b>Como ler:</b> “Receita provável” depende de natureza/CFOP com indicação de venda. Os CFOPs <b>5949/6949</b> são tratados como movimentação para o estoque FULL, sem receita; <b>1949/2949</b> são o retorno dessa movimentação. Operações ambíguas ficam em “A classificar”.</div>
+      <div className="hint"><b>Como ler:</b> “Receita provável” usa exclusivamente os CFOPs de venda configurados. Os CFOPs <b>5905/6905/5906/6906/5949/6949</b> são movimentação para estoque FULL, sem receita; <b>1905/2905/1906/2906/1949/2949</b> são retornos. Operações restantes não viram receita automaticamente.</div>
       <div className="metric-strip">
         <div className="metric-mini"><b>{fmtBRL(M.valorVendas)}</b><span>Receita provável · vProd</span></div>
         <div className="metric-mini"><b>{fmtBRL(M.valorDevolucoes)}</b><span>Devoluções de venda</span></div>
@@ -1044,7 +1055,7 @@ function montarChecklistImportacao({notes,ctes,eventos,inutilizacoes,targetDoc,c
   const validas=notasMes.filter(n=>n.autorizada),unicas=arr=>[...new Map(arr.map(n=>[docKey(n),n])).values()];
   const vendas=unicas(validas.filter(n=>!cancTodos.has(n.chave)&&(n.itens||[]).some(it=>classificarOperacaoItem(n,it,alvo).key==="receita")));
   const devolucoes=unicas(validas.filter(n=>ehDevolucao(n)));
-  const fullSaidas=unicas(validas.filter(n=>(n.itens||[]).some(it=>["5949","6949"].includes(onlyDigits(it.cfop)))));
+  const fullSaidas=unicas(validas.filter(n=>(n.itens||[]).some(it=>CFOPS_FULL_SAIDA.has(onlyDigits(it.cfop)))));
   const fullRetornos=unicas(validas.filter(n=>(n.itens||[]).some(it=>["1949","2949"].includes(onlyDigits(it.cfop)))));
   const evMes=(eventos||[]).filter(e=>noMes(e.dhEvento)&&e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)&&["55","65"].includes(String(e.modelo||""))&&(!alvo||onlyDigits(e.emitDoc)===alvo));
   const cancelCompletos=evMes.filter(e=>{const n=originais.get(e.chave);return n&&n.autorizada;});
@@ -1060,8 +1071,8 @@ function montarChecklistImportacao({notes,ctes,eventos,inutilizacoes,targetDoc,c
   return [
     normal("cte","CT-e",ctesMes.map(regCte),"CT-e vinculado(s) à empresa"),
     normal("devolucao","Devoluções",devolucoes.map(n=>regNfe(n,"Devolução")),"Nota(s) de devolução localizada(s)"),
-    normal("full_saida","FULL — transferências",fullSaidas.map(n=>regNfe(n,"FULL — transferência")),"CFOP 5949/6949 localizado(s)"),
-    normal("full_retorno","FULL — retornos/retiradas",fullRetornos.map(n=>regNfe(n,"FULL — retorno/retirada")),"CFOP 1949/2949 localizado(s)"),
+    normal("full_saida","FULL — movimentações",fullSaidas.map(n=>regNfe(n,"FULL — movimentação")),"CFOP de remessa/movimentação FULL localizado"),
+    normal("full_retorno","FULL — retornos/retiradas",fullRetornos.map(n=>regNfe(n,"FULL — retorno/retirada")),"CFOP de retorno FULL localizado"),
     normal("vendas","Vendas autorizadas",vendas.map(n=>regNfe(n,"Venda autorizada")),"NF-e de venda autorizada(s)"),
     {key:"canceladas",label:"Vendas canceladas",registros:evMes.map(regEvento),qtd:evMes.length,state:cancelState,detail:cancelPendentes.length?`${cancelCompletos.length} completa(s); ${cancelPendentes.length} evento(s) sem a NF-e original`:(cancelCompletos.length?"NF-e original + evento homologado":"Nenhum cancelamento localizado")},
     normal("inutilizacoes","Inutilizações",inuts.map(regInut),"Protocolo(s) homologado(s)")
@@ -1123,7 +1134,38 @@ function buildRows(notes,ctx={}){
       rows.push({ n, it, res });
     });
   });
-  return rows;
+  // [FIX 2] Detecta o mesmo NCM alternando entre CEST preenchido e vazio no conjunto analisado.
+  const porNcm=new Map();
+  rows.forEach(r=>{const ncm=normNcm(r.it.ncm);if(!ncm)return;const s=porNcm.get(ncm)||{com:false,sem:false};if(onlyDigits(r.it.cest))s.com=true;else s.sem=true;porNcm.set(ncm,s);});
+  return rows.map(r=>{
+    const ncm=normNcm(r.it.ncm),misto=porNcm.get(ncm),semCest=!onlyDigits(r.it.cest);
+    if(!(semCest&&misto&&misto.com&&misto.sem))return r;
+    const alerta={tipo:"CEST inconsistente para o mesmo NCM",modulo:"Cadastro",sev:SEV.DIVERG,msg:`O NCM ${ncm} aparece em outros itens com CEST preenchido e neste item sem CEST. Uniformizar o cadastro após confirmar o enquadramento legal.`,regra:"ICMS-005",base:"MOC Anexo I + Conv. 142/2018",fonte:"Conferência interna dos XMLs",vigencia:dtOnly(r.n.dhEmi)||"—",valorXml:"CEST vazio",trecho:r.it.desc||"",confianca:"Médio"};
+    if(r.res.alertas.some(a=>a.tipo===alerta.tipo))return r;
+    const alertas=[...r.res.alertas,alerta];
+    return {...r,res:{...r.res,alertas,situacao:r.res.situacao==="Sem indício relevante"?alerta.tipo:r.res.situacao,nivel:r.res.nivel==="Alto"?"Médio":r.res.nivel,temAlerta:true,valorAlerta:r.it.indTot==="0"?0:(Number(r.it.vProd)||0)}};
+  });
+}
+
+// [FIX 2] O KPI conta o item real sem CEST quando há regra ST/SP vigente ou inconsistência interna do mesmo NCM.
+function itemSemCestSinalizavel(r,ncmsComCest){
+  if(onlyDigits(r.it.cest)||!normNcm(r.it.ncm))return false;
+  const sujeito=consultaIcmsSP(normNcm(r.it.ncm),dtOnly(r.n.dhEmi)).some(x=>x.vig.ativo);
+  const inconsistente=ncmsComCest instanceof Set?ncmsComCest.has(normNcm(r.it.ncm)):(ncmsComCest||[]).some(x=>normNcm(x.it.ncm)===normNcm(r.it.ncm)&&!!onlyDigits(x.it.cest));
+  return sujeito||inconsistente;
+}
+
+// [FIX 1] RBT12 móvel: últimos 12 meses encerrados na competência mais recente, sempre somando todos os canais.
+function calcularRbt12(notes,targetDoc){
+  const vendas=[];
+  (notes||[]).forEach(n=>(n.itens||[]).forEach(it=>{if(classificarOperacaoItem(n,it,targetDoc).key==="receita"&&dtOnly(n.dhEmi))vendas.push({data:dtOnly(n.dhEmi),valor:valorItem(it)});}));
+  if(!vendas.length)return {valor:0,inicio:"—",fim:"—",pctSublimite:0,pctTeto:0,distSublimite:LIMITES_SIMPLES.sublimiteIcmsIss,distTeto:LIMITES_SIMPLES.teto,nivel:"ok"};
+  const ultima=vendas.reduce((a,b)=>a.data>b.data?a:b).data, fimMes=ultima.slice(0,7);
+  const [ano,mes]=fimMes.split("-").map(Number),iniDate=new Date(Date.UTC(ano,mes-12,1)),inicio=`${iniDate.getUTCFullYear()}-${String(iniDate.getUTCMonth()+1).padStart(2,"0")}`;
+  const valor=vendas.filter(v=>v.data.slice(0,7)>=inicio&&v.data.slice(0,7)<=fimMes).reduce((s,v)=>s+v.valor,0);
+  const pctSublimite=valor/LIMITES_SIMPLES.sublimiteIcmsIss,pctTeto=valor/LIMITES_SIMPLES.teto;
+  const nivel=valor>=LIMITES_SIMPLES.teto?"teto":valor>=LIMITES_SIMPLES.sublimiteIcmsIss?"sublimite":pctSublimite>=1-LIMITES_SIMPLES.margemAlerta||pctTeto>=1-LIMITES_SIMPLES.margemAlerta?"alerta":"ok";
+  return {valor,inicio,fim:fimMes,pctSublimite,pctTeto,distSublimite:LIMITES_SIMPLES.sublimiteIcmsIss-valor,distTeto:LIMITES_SIMPLES.teto-valor,nivel};
 }
 
 function baseResumoFiscal(){return {docs:new Map(),itens:0,vProd:0,vDesc:0,vFrete:0,vSeg:0,vOutro:0,alertas:0,cfops:new Set(),naturezas:new Set(),classes:new Set()};}
@@ -1232,17 +1274,19 @@ function montarDadosDossie(d){
     produto:it.desc,ncm:it.ncm,cest:it.cest,cfop:it.cfop,valor_produto:valorItem(it),severidade:a.sev,tipo:a.tipo,modulo:a.modulo,mensagem:a.msg,sugestao:a.sugestao,
     valor_xml:a.valorXml,regra:a.regra,base:a.base,vigencia:a.vigencia,fonte:a.fonte,confianca:a.confianca})));
   const competencias=d.resumoMensal.filter(x=>d.competencia==="todas"||x.competencia===d.competencia).map(x=>({competencia:x.competencia,notas:x.notasQtd,ctes:x.ctesQtd,receita_provavel:x.receita,
-    devolucoes_venda:x.devolucoes,receita_liquida_provavel:x.liquida,envios_full_5949_6949:x.fullSaidas,retornos_full_1949_2949:x.fullRetornos,saidas_sem_receita:x.semReceita,saidas_a_classificar:x.revisar,fretes_cte:x.frete}));
+    devolucoes_venda:x.devolucoes,receita_liquida_provavel:x.liquida,movimentacoes_full_saida:x.fullSaidas,movimentacoes_full_retorno:x.fullRetornos,saidas_sem_receita:x.semReceita,saidas_a_classificar:x.revisar,fretes_cte:x.frete}));
   const checklist=(d.checklist||[]).map(x=>({competencia:d.competencia,categoria:x.label,status:x.state==="ok"?"Importado":x.state==="warn"?"Importação incompleta":"Não localizado",quantidade:x.qtd,detalhe:x.detail}));
   const ultimoLote=d.ultimoLote?[{campo:"Data da importação",valor:d.ultimoLote.data},{campo:"Origem do lote",valor:origemNome(d.ultimoLote.origemMarketplace)},{campo:"Competência principal",valor:d.ultimoLote.competenciaPrincipal},{campo:"XMLs processados",valor:d.ultimoLote.arquivosProcessados},{campo:"NF-e/NFC-e",valor:d.ultimoLote.nfe},{campo:"CT-e",valor:d.ultimoLote.ctes},{campo:"Eventos",valor:d.ultimoLote.eventos},{campo:"Cancelamentos de NF-e",valor:d.ultimoLote.cancelamentosNfe},{campo:"Cancelamentos de CT-e",valor:d.ultimoLote.cancelamentosCte},{campo:"Devoluções",valor:d.ultimoLote.devolucoes},{campo:"FULL saídas",valor:d.ultimoLote.fullSaidas},{campo:"FULL retornos",valor:d.ultimoLote.fullRetornos},{campo:"Inutilizações",valor:d.ultimoLote.inutilizacoes},{campo:"Duplicados",valor:d.ultimoLote.duplicados},{campo:"Inválidos",valor:d.ultimoLote.invalidos},{campo:"Fora da competência principal",valor:d.ultimoLote.foraCompetencia},...Object.entries(d.ultimoLote.porCompetencia||{}).map(([c,v])=>({campo:`Documentos em ${c}`,valor:v.total}))]:[];
   const resumo=[
-    ["Notas incluídas",d.M.notas],["Itens analisados",d.M.itens],["Produtos únicos",d.M.produtos.size],["NCMs",d.M.ncms.size],["CT-e vinculados",d.M.ctes],["Inutilizações homologadas",d.M.inutilizacoes],
+    // [FIX 1] e [FIX 5] O dossiê replica os mesmos indicadores usados no painel.
+    ["Notas incluídas",d.M.notas],["Documentos únicos",d.M.documentosUnicos],["Linhas no log de importação",d.M.linhasLogImportacao],["Itens analisados",d.M.itens],["Produtos únicos",d.M.produtos.size],["NCMs",d.M.ncms.size],["CT-e vinculados",d.M.ctes],["Inutilizações homologadas",d.M.inutilizacoes],
+    ["RBT12 — todos os canais",d.RBT12.valor],["Percentual do sublimite",(d.RBT12.pctSublimite*100).toFixed(2)+"%"],["Percentual do teto",(d.RBT12.pctTeto*100).toFixed(2)+"%"],
     ["Documentos excluídos",d.M.excluidas],["Receita provável (vProd)",d.M.valorVendas],["Devoluções de venda",d.M.valorDevolucoes],["Receita provável líquida",d.M.saldoVendas],["Saídas sem receita provável",d.M.valorSemReceita],
-    ["Movimentação para FULL 5949/6949",d.M.valorFullSaidas],["Retorno FULL 1949/2949",d.M.valorFullRetornos],["Saídas a classificar",d.M.valorRevisar],["Fretes CT-e",d.M.valorFrete],["Lacunas de sequência",d.M.lacunasSequencia],
+    ["Movimentação para FULL",d.M.valorFullSaidas],["Retorno FULL",d.M.valorFullRetornos],["Saídas a classificar",d.M.valorRevisar],["Fretes CT-e",d.M.valorFrete],["Lacunas de sequência",d.M.lacunasSequencia],
     ["Possíveis monofásicos",d.M.mono],["Possível alíquota zero",d.M.zero],["Possível ICMS-ST/SP",d.M.st],["Possível antecipação 426-A",d.M.ant],["Revisões manuais",d.M.revisao]
   ].map(([indicador,valor])=>({indicador,valor}));
   const capa=[
-    ["Relatório","B4P 360 — DIAGNÓSTICO TRIBUTÁRIO"],["Empresa",d.config.empresa],["CNPJ analisado",d.targetDoc||d.config.cnpj],["UF",d.config.uf],["Regime informado",d.config.regime],
+    ["Relatório","B4P 360 — DIAGNÓSTICO TRIBUTÁRIO"],["Empresa",d.config.empresa],["CNPJ analisado",d.notes.length?fmtCnpj(d.targetDoc||d.config.cnpj):"CNPJ não informado"],["UF",d.config.uf],["Regime informado",d.config.regime],
     ["Competência/período",periodoDossie(d)],["Origem/marketplace",d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces"],["Gerado em",geradoEm],["Versão do sistema",APP_VERSION],["Notas no dossiê",documentos.length],["Itens no dossiê",itens.length],["CT-e no dossiê",ctes.length],
     ["Aviso","Relatório de triagem e apoio à consultoria; as conclusões dependem de revisão técnica e das informações fornecidas pelo cliente."]
   ].map(([campo,valor])=>({campo,valor}));
@@ -1250,7 +1294,7 @@ function montarDadosDossie(d){
     ["Escopo","XMLs de NF-e/NFC-e, CT-e, eventos e inutilizações importados e abrangidos pelo filtro de competência."],
     ["Receita provável","Somatório do vProd dos itens classificados como venda/faturamento. Não equivale automaticamente ao faturamento contábil nem ao total vNF."],
     ["Devoluções","Itens classificados como devolução de venda são apresentados separadamente e deduzidos apenas na métrica de receita provável líquida."],
-    ["Estoque FULL","CFOPs 5949/6949 são movimentações para o estoque FULL e não integram receita; 1949/2949 são retornos dessas movimentações."],
+    ["Estoque FULL","CFOPs 5905/6905/5906/6906/5949/6949 são movimentações para estoque FULL e não integram receita; 1905/2905/1906/2906/1949/2949 são retornos."],
     ["CT-e Mercado Livre","O vínculo com a empresa é aceito quando ela aparece como remetente, destinatária, expedidora, recebedora, tomadora, participante ou emitente de NF-e referenciada."],
     ["Sequência","Conferida por CNPJ emitente, modelo e série. Cancelamentos homologados e inutilizações ocupam seus números."],
     ["Limitações","A ferramenta não substitui conciliações contábeis, EFD, PGDAS-D/DCTF, extratos fiscais, livros, razão, balancetes ou parecer profissional."],
@@ -1268,12 +1312,12 @@ function tabelaHtml(rows,cols,limite){
   return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${escHtml(c[1])}</th>`).join("")}</tr></thead><tbody>${dados.map(r=>`<tr>${cols.map(c=>`<td>${c[2]==="money"?escHtml(fmtBRL(Number(r[c[0]])||0)):escHtml(r[c[0]]||"—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${limite&&rows.length>limite?`<p class="nota">Exibidos ${limite} de ${rows.length} registros. A planilha analítica contém todos.</p>`:""}`;
 }
 function gerarRelatorioTecnicoHTML(d,dados){
-  const kpis=[["Receita provável",fmtBRL(d.M.valorVendas)],["Devoluções",fmtBRL(d.M.valorDevolucoes)],["Receita provável líquida",fmtBRL(d.M.saldoVendas)],["Fretes CT-e",fmtBRL(d.M.valorFrete)],["Itens analisados",fmtNum(d.M.itens)],["Documentos excluídos",fmtNum(d.M.excluidas)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
+  const kpis=[["RBT12 — todos os canais",fmtBRL(d.RBT12.valor)],["% do sublimite",(d.RBT12.pctSublimite*100).toFixed(1)+"%"],["Receita provável",fmtBRL(d.M.valorVendas)],["Devoluções",fmtBRL(d.M.valorDevolucoes)],["Documentos únicos",fmtNum(d.M.documentosUnicos)],["Linhas de log",fmtNum(d.M.linhasLogImportacao)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório técnico fiscal - ${escHtml(periodoDossie(d))}</title><style>
   :root{--navy:#0f2a43;--blue:#2f6db3;--line:#d8e0e8;--mut:#657386;--bg:#f3f5f8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#202b36;font:14px/1.45 Arial,sans-serif}.page{max-width:1180px;margin:24px auto;background:#fff;padding:34px 38px;box-shadow:0 2px 12px #0001}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid var(--navy);padding-bottom:18px}.head h1{margin:0;color:var(--navy);font-size:25px}.head p{margin:5px 0;color:var(--mut)}button{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:9px 14px;cursor:pointer}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}.kpi{border:1px solid var(--line);border-radius:7px;padding:12px}.kpi b{display:block;color:var(--navy);font-size:17px}.kpi span{font-size:12px;color:var(--mut)}h2{color:var(--navy);font-size:18px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}.call{background:#eef5fb;border-left:4px solid var(--blue);padding:12px 14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{background:#edf2f7;color:var(--navy)}.nota,.vazio{color:var(--mut);font-size:12px}.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:12px;color:var(--mut);font-size:11px}@media(max-width:800px){.page{margin:0;padding:20px}.kpis{grid-template-columns:repeat(2,1fr)}.head{display:block}.head button{margin-top:12px}}@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:15mm}.no-print{display:none}.table-wrap{overflow:visible}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
-  </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · CNPJ ${escHtml(d.targetDoc||d.config.cnpj||"—")} · ${escHtml(periodoDossie(d))}</p><p>Origem: ${escHtml(d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces")} · gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
+  </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · ${escHtml(d.targetDoc?fmtCnpj(d.targetDoc):"CNPJ não informado")} · ${escHtml(periodoDossie(d))}</p><p>Origem: ${escHtml(d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces")} · gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
   <div class="kpis">${kpis.map(([a,b])=>`<div class="kpi"><b>${escHtml(b)}</b><span>${escHtml(a)}</span></div>`).join("")}</div>
-  <div class="call"><b>Critério de receita:</b> venda/faturamento pelo valor dos produtos (vProd), separando devoluções. Os CFOPs 5949/6949 são movimentações para o estoque FULL do Mercado Livre e não são receita; 1949/2949 são retornos dessas movimentações.</div>
+  <div class="call"><b>Critério de receita:</b> apenas os CFOPs 5101/5102/5105/5106/6101/6102/6105/6106, pelo valor dos produtos (vProd), com devoluções segregadas. Os CFOPs de movimentação FULL configurados não são receita.</div>
   <h2>1. Checklist dos documentos importados</h2>${tabelaHtml(dados.checklist,[["categoria","Categoria"],["status","Status"],["quantidade","Quantidade"],["detalhe","Detalhe"]])}
   <h2>2. Resumo por competência</h2>${tabelaHtml(dados.competencias,[["competencia","Competência"],["notas","NF-e"],["ctes","CT-e"],["receita_provavel","Receita provável","money"],["devolucoes_venda","Devoluções","money"],["receita_liquida_provavel","Líquida provável","money"],["fretes_cte","Fretes","money"]])}
   <h2>3. Resumo por operação</h2>${tabelaHtml(dados.operacoes,[["operacao","Natureza da operação"],["classificacao","Classificação"],["documentos","Docs."],["itens","Itens"],["cfops","CFOPs"],["valor_produtos","Produtos","money"],["total_nfe","Total NF-e","money"],["itens_com_alerta","Alertas"]])}
@@ -1295,7 +1339,7 @@ async function exportarPacoteDossie(d){
   const dados=montarDadosDossie(d),zip=new JSZip(),base=nomeBaseDossie(d);
   const wb=criarWorkbook(dados.sheets),xlsx=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   zip.file(`${base}_Analitico.xlsx`,xlsx);zip.file(`${base}_Relatorio_Tecnico.html`,gerarRelatorioTecnicoHTML(d,dados));
-  zip.file(`${base}_Resumo_Executivo.txt`,gerarResumo(d.M,d.rows,d.config,d.targetDoc,d.competencia));
+  zip.file(`${base}_Resumo_Executivo.txt`,gerarResumo(d.M,d.rows,d.config,d.targetDoc,d.competencia,d.RBT12));
   zip.file("B4P_Backup_Projeto_Completo.json",jsonBackupProjeto(d.projectData));
   zip.file("LEIA-ME.txt",`PACOTE DE CONFERÊNCIA FISCAL\n\nPeríodo: ${periodoDossie(d)}\nGerado em: ${dados.geradoEm}\n\nConteúdo:\n- Planilha analítica completa em XLSX;\n- Relatório técnico em HTML, pronto para impressão/PDF;\n- Resumo executivo em TXT;\n- Backup restaurável do projeto em JSON.\n\nMantenha os XMLs originais arquivados separadamente. O backup preserva os dados processados, não os arquivos XML originais.`);
   downloadBlob(`${base}_Pacote_Completo.zip`,await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}}));
@@ -1312,8 +1356,9 @@ function App(){
   const [ultimoLote,setUltimoLote]=useState(null);
   const [competencia,setCompetencia]=useState("todas");
   const [origemFiltro,setOrigemFiltro]=useState("todas");
-  const [importOrigin,setImportOrigin]=useState("tokstok");
-  const [config,setConfig]=useState({empresa:"B4P Confecções LTDA",cnpj:B4P_CNPJ,uf:"SP",regime:"Simples Nacional",ini:PERIODO.ini,fim:PERIODO.fim});
+  // [FIX 5] Nenhum canal é presumido na importação; o usuário identifica cada novo lote.
+  const [importOrigin,setImportOrigin]=useState("");
+  const [config,setConfig]=useState({empresa:"B4P Confecções LTDA",cnpj:B4P_CNPJ,uf:"SP",regime:"Simples Nacional",ini:PERIODO_PADRAO.ini,fim:PERIODO_PADRAO.fim});
   const [processing,setProcessing]=useState(false);
   const [hydrated,setHydrated]=useState(false);
   const [importError,setImportError]=useState("");
@@ -1333,7 +1378,8 @@ function App(){
       if(p.ultimoLote)setUltimoLote({...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)});
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
       if(typeof p.competencia==="string")setCompetencia(p.competencia);
-      if(ORIGENS_DOCUMENTO[p.origemFiltro])setOrigemFiltro(p.origemFiltro);
+      // [FIX 5] A abertura sempre começa consolidada; filtros usados em sessões anteriores não ficam pré-selecionados.
+      setOrigemFiltro("todas");
     }).catch(()=>setStorageOk(false)).finally(()=>setHydrated(true));
   },[]);
   useEffect(()=>{
@@ -1351,6 +1397,10 @@ function App(){
   const targetDoc=onlyDigits(config.cnpj)||onlyDigits(empresa&&empresa.doc);
   const engineCtx=useMemo(()=>({targetDoc,uf:(config.uf||empresa?.uf||"").toUpperCase()}),[targetDoc,config.uf,empresa]);
   const canceladas=useMemo(()=>new Set(eventosFiltrados.filter(e=>e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)).map(e=>e.chave).filter(Boolean)),[eventosFiltrados]);
+  // [FIX 1] O RBT12 ignora o filtro visual de marketplace e consolida todos os canais carregados.
+  const canceladasTodos=useMemo(()=>new Set(eventos.filter(e=>e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)).map(e=>e.chave).filter(Boolean)),[eventos]);
+  const notasRbt12=useMemo(()=>realNotes.filter(n=>!motivoExclusao(n,config,canceladasTodos,targetDoc)),[realNotes,config,canceladasTodos,targetDoc]);
+  const RBT12=useMemo(()=>calcularRbt12(notasRbt12,targetDoc),[notasRbt12,targetDoc]);
   const competencias=useMemo(()=>{
     const ini=(config.ini||"").slice(0,7),fim=(config.fim||"").slice(0,7),datas=[...notes.map(n=>n.dhEmi),...ctesFiltrados.map(c=>c.dhEmi),...eventosFiltrados.map(e=>e.dhEvento),...inutsFiltradas.map(x=>x.dhRecbto)];
     return [...new Set(datas.map(competenciaDe).filter(c=>c&&(!ini||c>=ini)&&(!fim||c<=fim)))].sort();
@@ -1416,9 +1466,12 @@ function App(){
       gruposSequencia:resumoSeq.grupos, lacunasSequencia:resumoSeq.lacunas,
       vendas:0, devolucoes:0, devolucoesCompra:0, entradas:0, saidasSemReceita:0, saidasRevisar:0, fullSaidas:0, fullRetornos:0,
       valorVendas:0, valorDevolucoes:0, valorDevolucoesCompra:0, valorEntradas:0, valorSemReceita:0, valorRevisar:0, valorFullSaidas:0, valorFullRetornos:0, saldoVendas:0,
-      forn:new Set(), ufs:new Set(), valor:0, mono:0, zero:0, st:0, ant:0, cestAus:0, cstDiv:0, revisao:0, valorAlerta:0,
+      fornecedores:new Set(), destinatarios:new Set(), ufs:new Set(), valor:0, mono:0, zero:0, st:0, ant:0, cestAus:0, cstDiv:0, revisao:0, valorAlerta:0,
       porTipo:{}, valorPorTipo:{}, porNcm:{}, porProduto:{}, porForn:{}, porMes:{}, interno:0, inter:0 };
     m.xml = logsAnalise.length;
+    // [FIX 5] Documentos únicos são deduplicados pela chave; linhas de log permanecem como rastreabilidade da importação.
+    m.linhasLogImportacao=logsAnalise.length;
+    m.documentosUnicos=new Set([...activeNotes.map(docKey),...activeCtes.map(c=>onlyDigits(c.chave)||`CTE|${c.emitDoc}|${c.serie}|${c.nCT}|${c.dhEmi}`)]).size;
     m.invalidos = logsAnalise.filter(l=>/inválid|malform|sem protocolo|não autoriz|denegad|duplicad|sem iten|falha/i.test(l.status)).length;
     m.validos = m.xml-m.invalidos;
     const docsOp={receita:new Set(),devolucao_venda:new Set(),devolucao_compra:new Set(),entrada:new Set(),full_retorno:new Set(),full_saida:new Set(),sem_receita:new Set(),revisar:new Set()};
@@ -1437,10 +1490,14 @@ function App(){
     m.fullSaidas=docsOp.full_saida.size;m.fullRetornos=docsOp.full_retorno.size;
     m.entradas=docsOp.entrada.size+docsOp.full_retorno.size;m.saidasSemReceita=docsOp.sem_receita.size+docsOp.full_saida.size;m.saidasRevisar=docsOp.revisar.size;
     m.saldoVendas=m.valorVendas-m.valorDevolucoes;
+    const ncmsComCest=new Set(rows.filter(r=>!!onlyDigits(r.it.cest)).map(r=>normNcm(r.it.ncm)).filter(Boolean));
     rows.forEach(({n,it,res})=>{
       const v=valorItem(it);
       m.produtos.add((it.cProd||it.desc)+"|"+it.ncm); if(it.ncm) m.ncms.add(it.ncm);
-      if(n.emitDoc) m.forn.add(n.emitDoc); if(n.ufEmit) m.ufs.add(n.ufEmit);
+      // [FIX 8] A contraparte depende da direção e o próprio CNPJ analisado nunca entra no contador.
+      const papel=papelDocumento(n,targetDoc),alvo=onlyDigits(targetDoc);
+      if(papel==="entrada"){const doc=onlyDigits(n.emitDoc)===alvo?onlyDigits(n.destDoc):onlyDigits(n.emitDoc);if(doc&&doc!==alvo)m.fornecedores.add(doc);if(n.ufEmit)m.ufs.add(n.ufEmit);}
+      if(papel==="saida"){const doc=onlyDigits(n.destDoc)===alvo?onlyDigits(n.emitDoc):onlyDigits(n.destDoc);if(doc&&doc!==alvo)m.destinatarios.add(doc);}
       m.valor += v;
       const mes=(n.dhEmi||"").slice(0,7); if(mes){ m.porMes[mes]=(m.porMes[mes]||0)+v; }
       if(it.ncm) m.porNcm[it.ncm]=(m.porNcm[it.ncm]||0)+1;
@@ -1452,7 +1509,7 @@ function App(){
       if([...tipos].some(t=>/alíquota zero/i.test(t))) m.zero++;
       if([...tipos].some(t=>/ICMS-ST em São Paulo|sujeito à ST/i.test(t))) m.st++;
       if([...tipos].some(t=>/426-A/i.test(t))) m.ant++;
-      if(tipos.has("CEST ausente")) m.cestAus++;
+      if(itemSemCestSinalizavel({n,it,res},ncmsComCest)) m.cestAus++;
       if([...tipos].some(t=>/CST|CSOSN/i.test(t))) m.cstDiv++;
       if(res.nivel==="Revisão manual obrigatória"||[...tipos].some(t=>/Revisão manual/i.test(t))) m.revisao++;
       res.alertas.forEach(a=>{ m.porTipo[a.tipo]=(m.porTipo[a.tipo]||0)+1; if(a.sev!=="info") m.valorPorTipo[a.tipo]=(m.valorPorTipo[a.tipo]||0)+v; });
@@ -1463,12 +1520,14 @@ function App(){
 
   const projectData=useMemo(()=>({schema:"b4p-fiscal-project",schemaVersion:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),
     realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro]);
-  const dossieData=useMemo(()=>({M,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
-    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
+  const dossieData=useMemo(()=>({M,RBT12,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
+    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,RBT12,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
 
   /* ---- upload ---- */
   async function handleFiles(files){
     const selecionados=Array.from(files); if(!selecionados.length||processing)return;
+    // [FIX 5] Evita registrar um lote no canal errado por seleção implícita.
+    if(!ORIGENS_DOCUMENTO[importOrigin]){setImportError("Selecione o marketplace / canal de origem deste lote antes de importar.");return;}
     const loteId=`lote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
     setProcessing(true); setImportError("");
     try{
@@ -1536,7 +1595,7 @@ function App(){
       const resumoLote={id:loteId,data:new Date().toLocaleString("pt-BR"),origemMarketplace:origemLote,arquivosSelecionados:selecionados.length,arquivosProcessados:arr.length,
         competenciaPrincipal,porCompetencia,foraCompetencia:arquivosFora.length,arquivosFora:arquivosFora.slice(0,200),nfe:notesDoLote.length,ctes:ctesDoLote.length,eventos:eventosDoLote.length,
         cancelamentos:cancelamentosLote.length,cancelamentosNfe,cancelamentosCte,inutilizacoes:inutsDoLote.length,devolucoes:unicos(n=>ehDevolucao(n)),
-        fullSaidas:unicos(n=>(n.itens||[]).some(it=>["5949","6949"].includes(onlyDigits(it.cfop)))),fullRetornos:unicos(n=>(n.itens||[]).some(it=>["1949","2949"].includes(onlyDigits(it.cfop)))),
+        fullSaidas:unicos(n=>(n.itens||[]).some(it=>CFOPS_FULL_SAIDA.has(onlyDigits(it.cfop)))),fullRetornos:unicos(n=>(n.itens||[]).some(it=>CFOPS_FULL_RETORNO.has(onlyDigits(it.cfop)))),
         vendas:unicos(n=>n.autorizada&&!cancelSet.has(n.chave)&&(n.itens||[]).some(it=>classificarOperacaoItem(n,it,uploadTargetDoc).key==="receita")),
         duplicados:newLogs.filter(l=>/duplicad/i.test(l.status)).length,invalidos:newLogs.filter(l=>/inválid|falha|sem itens|não é XML/i.test(l.status)).length};
       setUltimoLote(resumoLote);
@@ -1570,7 +1629,7 @@ function App(){
       if(!confirm(`Restaurar o backup e substituir os dados atualmente carregados?\n\nNF-e/NFC-e: ${fmtNum(p.realNotes.length)}\nCT-e: ${fmtNum(p.ctes.length)}\nEventos: ${fmtNum(p.eventos.length)}\nInutilizações: ${fmtNum(p.inutilizacoes.length)}`))return;
       setRealNotes(p.realNotes.filter(n=>!n.simulado).map(n=>comOrigem(n)));setLogs(p.logs.map(n=>comOrigem(n)));setEventos(p.eventos.map(n=>comOrigem(n)));setCtes(p.ctes.map(n=>comOrigem(n)));setInutilizacoes(p.inutilizacoes.map(n=>comOrigem(n)));setUltimoLote(p.ultimoLote?{...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)}:null);
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
-      setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setOrigemFiltro(ORIGENS_DOCUMENTO[p.origemFiltro]?p.origemFiltro:"todas");setImportError("");setTab("inicio");
+      setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setOrigemFiltro("todas");setImportOrigin("");setImportError("");setTab("inicio");
       alert("Backup restaurado com sucesso.");
     }catch(e){alert(`Não foi possível restaurar o backup: ${e.message||"arquivo inválido"}`);}
   }
@@ -1593,9 +1652,9 @@ function App(){
     </div>
     <div className="tabs">{TABS.map(([k,l])=><button key={k} className={"tab"+(tab===k?" active":"")} onClick={()=>setTab(k)}>{l}</button>)}</div>
     <div className="content">
-      {tab==="inicio" && <VisaoGeral M={M} rows={rows} notes={activeNotes} empresa={empresa} config={config} competencia={competencia} resumoMensal={resumoMensal} setCompetencia={setCompetencia} setTab={setTab} excluidas={excludedNotes.length+excludedCtes.length}/>} 
+      {tab==="inicio" && <VisaoGeral M={M} RBT12={RBT12} rows={rows} notes={activeNotes} empresa={empresa} config={config} competencia={competencia} resumoMensal={resumoMensal} setCompetencia={setCompetencia} setTab={setTab} excluidas={excludedNotes.length+excludedCtes.length}/>} 
       {tab==="operacoes" && <OperacoesCfop rows={rows} targetDoc={targetDoc} M={M}/>} 
-      {tab==="produto" && <ProdutoView rows={rows}/>} 
+      {tab==="produto" && <ProdutoView rows={rows} targetDoc={targetDoc}/>} 
       {tab==="tributos" && <TributosHub rows={rows} M={M}/>} 
       {tab==="seq" && <Sequencia grupos={gruposSeq} targetDoc={targetDoc} config={config} competencia={competencia}/>} 
       {tab==="documentos" && <DocumentosHub fileRef={fileRef} handleFiles={handleFiles} logs={logsComCompetencia} limpar={limpar} excluirDadosCompetencia={excluirDadosCompetencia} gerenciamentoDados={gerenciamentoDados} ultimoLote={ultimoLote} processing={processing} importError={importError} eventos={eventosVisiveis} ctes={ctesVisiveis} inutilizacoes={inutsVisiveis} excluidas={excludedNotes.length+excludedCtes.length} storageOk={storageOk} notes={notesVisiveis} canceladas={canceladas} config={config} targetDoc={targetDoc} projectData={projectData} restaurarBackup={restaurarBackup} checklist={checklistImportacao} competencia={competencia} importOrigin={importOrigin} setImportOrigin={setImportOrigin}/>} 
@@ -1607,9 +1666,9 @@ function App(){
 }
 
 /* ---------- TAB: Início ---------- */
-function Inicio({M}){
+function Inicio({M,config}){
   return <div>
-    <Card title="Escopo da análise" sub="Empresa B4P Confecções · São Paulo · Simples Nacional · período 01/06/2025 a 31/05/2026">
+    <Card title="Escopo da análise" sub={`Empresa B4P Confecções · São Paulo · Simples Nacional · período ${config.ini} a ${config.fim}`}>
       <p className="lead">Esta aplicação usa XMLs de NF-e/NFC-e, CT-e, eventos e inutilizações como evidência. Vendas, entradas, devoluções e cancelamentos são segregados; a numeração é conferida por emitente, modelo e série. Os itens são cruzados com o banco tributário para sinalizar indícios de PIS/Cofins, ICMS-ST e divergências cadastrais. Todo resultado é um <b>indício</b> sujeito a revisão — a ferramenta não substitui o parecer do consultor.</p>
     </Card>
     <div className="grid g4">
@@ -1731,7 +1790,7 @@ function Upload({fileRef,handleFiles,logs,limpar,excluirDadosCompetencia,gerenci
     <UltimoLote lote={ultimoLote}/>
     <Card title="Importar documentos fiscais em XML ou ZIP" sub="NF-e/NFC-e (55/65), CT-e (57), eventos e inutilizações · arquivos avulsos ou compactados">
       <div className="hint"><b>Origem deste lote:</b> selecione o marketplace antes de importar. A origem será gravada em cada documento, evento e log.</div>
-      <label>Marketplace / canal de origem<select className="select" value={importOrigin} disabled={processing} onChange={e=>setImportOrigin(e.target.value)}>{Object.entries(ORIGENS_DOCUMENTO).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Marketplace / canal de origem<select className="select" value={importOrigin} disabled={processing} onChange={e=>setImportOrigin(e.target.value)}><option value="" disabled>Selecione o canal deste lote</option>{Object.entries(ORIGENS_DOCUMENTO).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <div className="drop" onDragOver={e=>{e.preventDefault();}} onDrop={e=>{e.preventDefault(); if(!processing)handleFiles(e.dataTransfer.files);}}
         onClick={()=>!processing&&fileRef.current.click()}>
         <div className="drop-i">⇪</div>
@@ -1969,13 +2028,21 @@ function Divergencias({rows}){
 }
 
 /* ---------- TAB: Conferência por Produto ---------- */
-function ProdutoView({rows}){
+function ProdutoView({rows,targetDoc}){
   const groups=useMemo(()=>{
-    const g={};
+    const g={},cadastros=new Map(),tiposVenda=new Map();
     rows.forEach(({n,it,res})=>{
+      const chaveCadastro=`${textoOperacao(it.desc||"").replace(/\s+/g," ").trim()}|${normNcm(it.ncm)}`;
+      const codigos=cadastros.get(chaveCadastro)||new Set();if(it.cProd)codigos.add(it.cProd);cadastros.set(chaveCadastro,codigos);
+      const tipos=tiposVenda.get(chaveCadastro)||new Set(),cfop=onlyDigits(it.cfop);if(CFOPS_PRODUCAO.has(cfop))tipos.add("produção própria");if(CFOPS_REVENDA.has(cfop))tipos.add("revenda");tiposVenda.set(chaveCadastro,tipos);
       const k=(it.cProd||"")+"|"+it.desc+"|"+it.ncm+"|"+it.cest;
-      const o=g[k]||(g[k]={cProd:it.cProd,desc:it.desc,ncm:it.ncm,cest:it.cest,ocor:0,valor:0,forn:new Set(),cfops:new Set(),csts:new Set(),csosns:new Set(),cpis:new Set(),ccof:new Set(),ncms:new Set(),cests:new Set(),prim:"9999",ult:"0000",situ:{}});
-      o.ocor++; o.valor+=valorItem(it); if(n.emitNome)o.forn.add(n.emitNome); if(it.cfop)o.cfops.add(it.cfop);
+      const o=g[k]||(g[k]={cProd:it.cProd,desc:it.desc,ncm:it.ncm,cest:it.cest,ocor:0,valor:0,forn:new Set(),dest:new Set(),cfops:new Set(),csts:new Set(),csosns:new Set(),cpis:new Set(),ccof:new Set(),ncms:new Set(),cests:new Set(),prim:"9999",ult:"0000",situ:{}});
+      o.ocor++; o.valor+=valorItem(it);
+      // [FIX 8] Em entradas registra fornecedor; em saídas, destinatário. O próprio emitente analisado é excluído.
+      const papel=papelDocumento(n,targetDoc),alvo=onlyDigits(targetDoc);
+      if(papel==="entrada"&&onlyDigits(n.emitDoc)!==alvo&&n.emitNome)o.forn.add(n.emitNome);
+      if(papel==="saida"&&onlyDigits(n.destDoc)!==alvo&&n.destNome)o.dest.add(n.destNome);
+      if(it.cfop)o.cfops.add(it.cfop);
       if(it.cstIcms)o.csts.add(it.cstIcms); if(it.csosn)o.csosns.add(it.csosn); if(it.cstPis)o.cpis.add(it.cstPis); if(it.cstCofins)o.ccof.add(it.cstCofins);
       if(it.ncm)o.ncms.add(it.ncm); if(it.cest)o.cests.add(it.cest);
       if(n.dhEmi){ if(n.dhEmi<o.prim)o.prim=n.dhEmi; if(n.dhEmi>o.ult)o.ult=n.dhEmi; }
@@ -1987,22 +2054,27 @@ function ProdutoView({rows}){
       if(o.csts.size>1) flags.push("CSTs de ICMS diferentes");
       if(o.csosns.size>1) flags.push("CSOSNs diferentes");
       if(Object.keys(o.situ).length>1) flags.push("Classificações distintas");
+      const chaveCadastro=`${textoOperacao(o.desc||"").replace(/\s+/g," ").trim()}|${normNcm(o.ncm)}`,codigos=cadastros.get(chaveCadastro)||new Set(),tipos=tiposVenda.get(chaveCadastro)||new Set();
+      // [FIX 6] Mesma descrição e NCM com cProd distintos passa a gerar alerta cadastral.
+      if(codigos.size>1)flags.push(`Possível cadastro duplicado: códigos ${[...codigos].join(", ")}`);
+      // [FIX 7] O mesmo produto não pode alternar silenciosamente entre produção própria e revenda.
+      if(tipos.has("produção própria")&&tipos.has("revenda"))flags.push("Divergência produção x revenda");
       const situ=Object.entries(o.situ).sort((a,b)=>b[1]-a[1])[0][0];
       return {...o,flags,situ};
     }).sort((a,b)=>b.valor-a.valor);
-  },[rows]);
+  },[rows,targetDoc]);
   function exp(fmt){
-    const flat=groups.map(o=>({produto:o.desc,cprod:o.cProd,ncm:o.ncm,cest:o.cest,ocorrencias:o.ocor,valor_total:o.valor,fornecedores:[...o.forn].join(", "),cfops:[...o.cfops].join(", "),csts:[...o.csts].join(", "),csosns:[...o.csosns].join(", "),cst_pis:[...o.cpis].join(", "),cst_cofins:[...o.ccof].join(", "),primeira:o.prim,ultima:o.ult,classificacao:o.situ,divergencias:o.flags.join(" | ")}));
+    const flat=groups.map(o=>({produto:o.desc,cprod:o.cProd,ncm:o.ncm,cest:o.cest,ocorrencias:o.ocor,valor_total:o.valor,fornecedores_entradas:[...o.forn].join(", "),destinatarios_saidas:[...o.dest].join(", "),cfops:[...o.cfops].join(", "),csts:[...o.csts].join(", "),csosns:[...o.csosns].join(", "),cst_pis:[...o.cpis].join(", "),cst_cofins:[...o.ccof].join(", "),primeira:o.prim,ultima:o.ult,classificacao:o.situ,divergencias:o.flags.join(" | ")}));
     if(fmt==="csv")download("consolidacao_produto.csv",toCSV(flat),"text/csv"); else xlsxDownload([{name:"Produtos",rows:flat}],"consolidacao_produto.xlsx");
   }
   return <Card title="Consolidação por produto" sub={groups.length+" produto(s) — agrupados por código, descrição, NCM e CEST"}
     right={<div className="row"><button className="btn btn-ghost" onClick={()=>exp("csv")}>CSV</button><button className="btn" onClick={()=>exp("xlsx")}>XLSX</button></div>}>
-    <div className="scroll"><table className="table"><thead><tr><th>Produto</th><th>NCM</th><th>CEST</th><th className="r">Ocorr.</th><th className="r">Valor</th><th>Fornec.</th><th>CFOPs</th><th>CST PIS/Cof</th><th>Período</th><th>Regra sugerida</th><th>Divergências</th></tr></thead>
+    <div className="scroll"><table className="table"><thead><tr><th>Produto</th><th>NCM</th><th>CEST</th><th className="r">Ocorr.</th><th className="r">Valor</th><th>Fornec. / Dest.</th><th>CFOPs</th><th>CST PIS/Cof</th><th>Período</th><th>Regra sugerida</th><th>Divergências</th></tr></thead>
     <tbody>{groups.map((o,i)=><tr key={i}>
       <td className="sm"><b>{o.desc}</b><div className="muted">{o.cProd}</div></td>
       <td className="mono">{[...o.ncms].join(", ")}{o.ncms.size>1&&<span className="tag tag-bad sm"> NCMs!</span>}</td>
       <td className="mono sm">{[...o.cests].join(", ")||"—"}</td><td className="r">{o.ocor}</td><td className="r">{fmtBRL(o.valor)}</td>
-      <td className="sm">{o.forn.size}</td><td className="sm">{[...o.cfops].join(", ")}</td><td className="sm">{[...o.cpis].join("/")||"—"} · {[...o.ccof].join("/")||"—"}</td>
+      <td className="sm">{o.forn.size?`${o.forn.size} forn.`:""}{o.forn.size&&o.dest.size?" · ":""}{o.dest.size?`${o.dest.size} dest.`:""}{!o.forn.size&&!o.dest.size?"—":""}</td><td className="sm">{[...o.cfops].join(", ")}</td><td className="sm">{[...o.cpis].join("/")||"—"} · {[...o.ccof].join("/")||"—"}</td>
       <td className="sm">{o.prim}→{o.ult}</td><td className="sm">{o.situ}</td>
       <td className="sm">{o.flags.length?o.flags.map((f,j)=><div key={j} className="tag tag-warn sm">{f}</div>):<span className="muted">—</span>}</td></tr>)}</tbody></table></div>
   </Card>;
@@ -2049,7 +2121,7 @@ function Evidencias({notes,ctes,inutilizacoes,eventos,canceladas,config,targetDo
 function Resumo({dossie}){
   const {M,rows,config,targetDoc,competencia}=dossie;
   const [gerando,setGerando]=useState(false);
-  const txt=useMemo(()=>gerarResumo(M,rows,config,targetDoc,competencia),[M,rows,config,targetDoc,competencia]);
+  const txt=useMemo(()=>gerarResumo(M,rows,config,targetDoc,competencia,dossie.RBT12),[M,rows,config,targetDoc,competencia,dossie.RBT12]);
   const executar=fn=>{try{fn();}catch(e){alert(e.message||"Não foi possível gerar o arquivo.");}};
   async function pacote(){setGerando(true);try{await exportarPacoteDossie(dossie);}catch(e){alert(e.message||"Não foi possível gerar o pacote.");}finally{setGerando(false);}}
   return <div>
@@ -2069,7 +2141,7 @@ function Resumo({dossie}){
     </Card>
   </div>;
 }
-function gerarResumo(M,rows,config,targetDoc,competencia){
+function gerarResumo(M,rows,config,targetDoc,competencia,RBT12){
   const top=Object.entries(M.valorPorTipo).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([t,v])=>`   • ${t}: ${fmtBRL(v)}`).join("\n")||"   • (sem alertas com valor bruto associado)";
   const prods=[...rows].filter(r=>r.res.temAlerta).sort((a,b)=>b.it.vProd-a.it.vProd).slice(0,5).map(r=>`   • ${r.it.desc} (NCM ${r.it.ncm}) — ${fmtBRL(r.it.vProd)} — ${r.res.situacao}`).join("\n")||"   • (nenhum)";
   const ops=consolidarOperacoes(rows,targetDoc).slice(0,6).map(g=>`   • ${g.nome} — ${metaOperacao(g.classe).label} — ${g.documentos} doc(s) — ${fmtBRL(g.vProd)}`).join("\n")||"   • (nenhuma operação)";
@@ -2085,14 +2157,16 @@ Documento gerado por ferramenta de triagem — NÃO constitui parecer tributári
 
 1. ESCOPO ANALISADO
    Notas: ${M.notas} · Itens: ${M.itens} · Produtos únicos: ${M.produtos.size} · NCMs: ${M.ncms.size}
-   Fornecedores: ${M.forn.size} · UFs de origem: ${[...M.ufs].join(", ")||"—"}
+   Documentos únicos: ${M.documentosUnicos} · Linhas no log de importação: ${M.linhasLogImportacao}
+   Fornecedores únicos (entradas): ${M.fornecedores.size} · Destinatários únicos (saídas): ${M.destinatarios.size} · UFs de origem: ${[...M.ufs].join(", ")||"—"}
+   RBT12 em todos os canais (${RBT12.inicio} a ${RBT12.fim}): ${fmtBRL(RBT12.valor)} · ${(RBT12.pctSublimite*100).toFixed(1)}% do sublimite · ${(RBT12.pctTeto*100).toFixed(1)}% do teto
    Valor bruto dos itens analisados: ${fmtBRL(M.valor)}
    Documentos preservados, mas fora da análise: ${M.excluidas}
    Receita provável (vProd): ${M.vendas} documento(s) · ${fmtBRL(M.valorVendas)}
    Devoluções de venda: ${M.devolucoes} documento(s) · ${fmtBRL(M.valorDevolucoes)}
    Receita provável menos devoluções: ${fmtBRL(M.saldoVendas)}
    Saídas sem receita provável: ${M.saidasSemReceita} documento(s) · ${fmtBRL(M.valorSemReceita)}
-   Estoque FULL: ${M.fullSaidas} envio(s) 5949/6949 (${fmtBRL(M.valorFullSaidas)}) · ${M.fullRetornos} retorno(s) 1949/2949 (${fmtBRL(M.valorFullRetornos)})
+   Estoque FULL: ${M.fullSaidas} envio(s)/movimentação(ões) (${fmtBRL(M.valorFullSaidas)}) · ${M.fullRetornos} retorno(s) (${fmtBRL(M.valorFullRetornos)})
    Saídas a classificar: ${M.saidasRevisar} documento(s) · ${fmtBRL(M.valorRevisar)}
    CT-es vinculados: ${M.ctes} · Valor das prestações: ${fmtBRL(M.valorFrete)}
    Inutilizações homologadas: ${M.inutilizacoes}
@@ -2206,11 +2280,12 @@ function resolveEmpresa(notes,config){
   if(doc){
     const n=notes.find(x=>onlyDigits(x.emitDoc)===doc||onlyDigits(x.destDoc)===doc);
     const comoEmit=n&&onlyDigits(n.emitDoc)===doc;
-    return {doc,nome:config.empresa||(comoEmit?n?.emitNome:n?.destNome)||"—",uf:(config.uf||(comoEmit?n?.ufEmit:n?.ufDest)||"").toUpperCase(),papel:"CNPJ configurado",regime:config.regime||"",misto:false};
+    // [FIX 9] O rótulo usa o CNPJ efetivamente localizado no XML; sem documento carregado, não afirma que há CNPJ lido.
+    return {doc,nome:config.empresa||(comoEmit?n?.emitNome:n?.destNome)||"—",uf:(config.uf||(comoEmit?n?.ufEmit:n?.ufDest)||"").toUpperCase(),papel:n?fmtCnpj(comoEmit?n.emitDoc:n.destDoc):"CNPJ não informado",regime:config.regime||"",misto:false};
   }
   const auto=deriveEmpresa(notes);
-  if(auto)return {...auto,regime:auto.regime||config.regime||""};
-  return config.empresa?{doc:"",nome:config.empresa,uf:config.uf||"",papel:"Configuração",regime:config.regime||"",misto:false}:null;
+  if(auto)return {...auto,papel:fmtCnpj(auto.doc),regime:auto.regime||config.regime||""};
+  return config.empresa?{doc:"",nome:config.empresa,uf:config.uf||"",papel:"CNPJ não informado",regime:config.regime||"",misto:false}:null;
 }
 function alertaAplicavel(a, uf){
   if(a.modulo==="ICMS-ST SP" || a.modulo==="Antecipação 426-A") return !uf || uf==="SP";
@@ -2245,6 +2320,7 @@ const EXPLICA={
   "CST do ICMS possivelmente divergente":{t:"CST/CSOSN do ICMS a revisar",a:"Regime do emitente x código informado parecem incompatíveis."},
   "CSOSN possivelmente divergente":{t:"CSOSN a revisar",a:"Regime do emitente x CSOSN informado parecem incompatíveis."},
   "CEST ausente":{t:"CEST ausente em produto de ST",a:"Informe o CEST quando o produto for sujeito à substituição tributária."},
+  "CEST inconsistente para o mesmo NCM":{t:"CEST inconsistente no mesmo NCM",a:"O mesmo NCM aparece com e sem CEST; confirme o enquadramento e uniformize o cadastro."},
   "CEST incompatível":{t:"CEST incompatível",a:"O CEST informado diverge da referência do NCM."},
   "NCM não encontrado na base vigente":{t:"NCM fora da base vigente",a:"Pode ser NCM histórico — validar a classificação na data da nota."},
   "NCM inválido":{t:"NCM inválido",a:"Código sem 8 dígitos — corrigir cadastro."},
@@ -2277,7 +2353,7 @@ function GrupoAchado({sit, itens, onOpen}){
   </div>;
 }
 
-function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCompetencia,setTab,excluidas}){
+function VisaoGeral({M,RBT12,rows,notes,empresa,config,competencia,resumoMensal,setCompetencia,setTab,excluidas}){
   const [sel,setSel]=useState(null);
   const [lista,setLista]=useState(null);
   const uf = empresa?empresa.uf:"";
@@ -2294,7 +2370,7 @@ function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCom
       <div className="lead">Visão rápida da movimentação fiscal incluída no período. Valores de receita são preliminares e dependem da classificação por operação e CFOP.</div>
       <div className="hero-kpis">
         <div className="hero-kpi"><b>{fmtNum(notes.length)}</b><span>NF-e/NFC-e analisadas</span></div><div className="hero-kpi"><b>{fmtNum(rows.length)}</b><span>Itens analisados</span></div>
-        <div className="hero-kpi"><b>{fmtNum(M.ctes)}</b><span>CT-e vinculados</span></div><div className="hero-kpi"><b>{fmtNum(M.validos)} / {fmtNum(M.xml)}</b><span>XMLs válidos / importados</span></div>
+        <div className="hero-kpi"><b>{fmtNum(M.ctes)}</b><span>CT-e vinculados</span></div><div className="hero-kpi"><b>{fmtNum(M.documentosUnicos)}</b><span>Documentos únicos</span></div><div className="hero-kpi"><b>{fmtNum(M.linhasLogImportacao)}</b><span>Linhas no log de importação</span></div>
       </div>
       <div className="quick-actions"><button className="btn" onClick={()=>setTab("documentos")}>Importar documentos</button><button className="btn" onClick={()=>setTab("operacoes")}>Analisar operações e CFOP</button><button className="btn" onClick={()=>setTab("seq")}>Conferir sequência</button><button className="btn" onClick={()=>setTab("resumo")}>Abrir relatório</button></div>
     </Card>
@@ -2304,6 +2380,16 @@ function VisaoGeral({M,rows,notes,empresa,config,competencia,resumoMensal,setCom
       <div className="stat kpi-primary good"><div className="stat-n">{fmtBRL(M.saldoVendas)}</div><div className="stat-l">Receita provável líquida</div><div className="stat-note">Vendas menos devoluções</div></div>
       <div className="stat kpi-primary bad"><div className="stat-n">{fmtBRL(M.valorRevisar)}</div><div className="stat-l">Saídas a classificar</div><div className="stat-note">Não entram automaticamente como receita</div></div>
     </div>
+    <Card title="RBT12 — sublimite e teto do Simples" sub={`Receita bruta dos itens classificados como Venda, em todos os canais · ${RBT12.inicio} a ${RBT12.fim}`}>
+      {/* [FIX 1] Indicador consolidado, independente do marketplace atualmente filtrado. */}
+      <div className="grid g4">
+        <Stat n={fmtBRL(RBT12.valor)} l="RBT12 atual" tone={RBT12.nivel==="ok"?"":"t-div"}/>
+        <Stat n={`${(RBT12.pctSublimite*100).toFixed(1)}%`} l={`do sublimite (${fmtBRL(LIMITES_SIMPLES.sublimiteIcmsIss)})`}/>
+        <Stat n={`${(RBT12.pctTeto*100).toFixed(1)}%`} l={`do teto (${fmtBRL(LIMITES_SIMPLES.teto)})`}/>
+        <Stat n={RBT12.distTeto>=0?fmtBRL(RBT12.distTeto):`Excedido em ${fmtBRL(-RBT12.distTeto)}`} l="Distância até o teto" tone={RBT12.distTeto<0?"t-div":""}/>
+      </div>
+      {RBT12.nivel!=="ok"?<div className="aviso-uf"><b>Atenção:</b> {RBT12.valor>=LIMITES_SIMPLES.teto?`o teto do Simples foi alcançado ou ultrapassado em ${fmtBRL(Math.max(0,-RBT12.distTeto))}.`:RBT12.valor>=LIMITES_SIMPLES.sublimiteIcmsIss?`o sublimite de ICMS/ISS foi alcançado ou ultrapassado; distância até o teto: ${fmtBRL(Math.max(0,RBT12.distTeto))}.`:`o RBT12 está a menos de 10% de pelo menos um limite. Faltam ${fmtBRL(Math.max(0,RBT12.distSublimite))} para o sublimite e ${fmtBRL(Math.max(0,RBT12.distTeto))} para o teto.`} Conferir os limites vigentes e os efeitos legais no período.</div>:<div className="ok-box">RBT12 abaixo da faixa preventiva de 90% dos dois limites.</div>}
+    </Card>
     <Card title="Prioridades da conferência" sub="Comece pelos pontos que podem alterar a leitura do período">
       <div className="priority-list">
         <div className="priority" onClick={()=>setTab("operacoes")}><b>{fmtNum(M.saidasRevisar)} documento(s) a classificar</b><span>{fmtBRL(M.valorRevisar)} em itens de saída sem conclusão automática.</span></div>

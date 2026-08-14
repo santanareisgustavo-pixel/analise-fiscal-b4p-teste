@@ -2,11 +2,13 @@
 
 Sistema estático de apoio à consultoria tributária da B4P, com análise documental, identificação de riscos e mapeamento de oportunidades.
 
-Esta é a **publicação v4** do sistema, correspondente à versão interna **3.4.0**.
+Esta é a **publicação v5** do sistema, correspondente à versão interna **3.5.0**.
 
 Nesta versão, o sistema inicia vazio e não inclui documentos, valores ou controles de demonstração. Todos os indicadores passam a refletir exclusivamente os arquivos efetivamente importados pelo usuário.
 
-A v4 também separa os documentos por marketplace. Os dados já existentes são migrados para **Mercado Livre** e cada novo lote deve ter sua origem escolhida antes da importação, incluindo **TOK&STOK**. A série fiscal permanece vinculada à nota e aparece nos controles e nas exportações.
+A v5 mantém a separação por marketplace: dados legados continuam em **Mercado Livre** e cada novo lote exige a escolha explícita da origem, incluindo **TOK&STOK**. A série fiscal permanece vinculada à nota e aparece nos controles e nas exportações.
+
+Também foram incluídos o indicador RBT12 do Simples Nacional, a classificação fechada dos CFOPs de venda e das movimentações FULL, conferências reforçadas de CEST/cadastro de produtos, contrapartes corretas por direção e indicadores separados de documentos únicos e linhas de log.
 
 ## O que o sistema faz
 
