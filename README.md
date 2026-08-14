@@ -2,13 +2,15 @@
 
 Sistema estático de apoio à consultoria tributária da B4P, com análise documental, identificação de riscos e mapeamento de oportunidades.
 
-Esta é a **publicação v5** do sistema, correspondente à versão interna **3.5.0**.
+Esta é a **publicação v6** do sistema, correspondente à versão interna **3.6.0**.
 
 Nesta versão, o sistema inicia vazio e não inclui documentos, valores ou controles de demonstração. Todos os indicadores passam a refletir exclusivamente os arquivos efetivamente importados pelo usuário.
 
-A v5 mantém a separação por marketplace: dados legados continuam em **Mercado Livre** e cada novo lote exige a escolha explícita da origem, incluindo **TOK&STOK**. A série fiscal permanece vinculada à nota e aparece nos controles e nas exportações.
+A v6 mantém a separação por marketplace: dados legados continuam em **Mercado Livre** e cada novo lote exige a escolha explícita da origem, incluindo **TOK&STOK**. A série fiscal permanece vinculada à nota e aparece nos controles e nas exportações.
 
 Também foram incluídos o indicador RBT12 do Simples Nacional, a classificação fechada dos CFOPs de venda e das movimentações FULL, conferências reforçadas de CEST/cadastro de produtos, contrapartes corretas por direção e indicadores separados de documentos únicos e linhas de log.
+
+Nesta versão foi acrescentado o módulo **Conciliação PGDAS-D × Notas Fiscais**, por competência, com valores declarados editáveis, tolerância de materialidade, classificação automática de divergências, alerta de CFOP 5106/6106, exportação CSV/XLSX e integração com o RBT12.
 
 ## O que o sistema faz
 
@@ -19,6 +21,7 @@ Também foram incluídos o indicador RBT12 do Simples Nacional, a classificaçã
 - preserva série, número e chave fiscal nos controles e relatórios;
 - mantém checklist automático de documentos importados;
 - analisa operações, CFOP, produtos e tributação;
+- concilia a receita apurada nos XMLs com a receita declarada no PGDAS-D;
 - controla a sequência fiscal dos documentos emitidos pela empresa analisada;
 - gera relatórios, planilhas, resumo executivo e backup restaurável do projeto.
 

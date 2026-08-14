@@ -140,6 +140,8 @@ body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-s
 .competencia-bar .comp-title{display:flex;flex-direction:column}.competencia-bar .comp-title b{color:var(--navy);font-size:13px}.competencia-bar .comp-title span{color:var(--mut);font-size:11px}.competencia-bar .select{min-width:190px}.competencia-bar .comp-status{margin-left:auto;font-size:12px;color:var(--mut)}
 .monthly-table tr{cursor:pointer}.monthly-table tr.focus-row td{background:#eef5fb}.monthly-table td:first-child{white-space:nowrap}
 .check-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.check-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:12px;background:#fff;font:inherit;text-align:left;cursor:pointer}.check-item:hover{box-shadow:0 3px 10px rgba(15,42,67,.1)}.check-item.ok{border-color:#b9dfca;background:var(--okBg)}.check-item.warn{border-color:#efd39b;background:#fff8ea}.check-item.bad{border-color:#edc6cc;background:var(--divBg)}.check-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font-weight:800;flex:0 0 auto}.check-item.ok .check-icon{background:var(--ok);color:#fff}.check-item.warn .check-icon{background:#b7790b;color:#fff}.check-item.bad .check-icon{background:var(--div);color:#fff}.check-body b{display:block;color:var(--navy)}.check-body span{display:block;color:var(--mut);font-size:12px;margin-top:2px}.check-count{font-weight:700;color:var(--txt)!important}.missing-link{border:0;background:none;color:var(--div);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}.missing-toolbar{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.missing-list{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.missing-num{border:1px solid var(--line);border-radius:7px;padding:9px;text-align:center;font-weight:700;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}.seq-ref{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.seq-ref span{font-size:12px;background:#eef4fa;color:var(--navy);border-radius:6px;padding:6px 9px}.batch-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.batch-box{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fafbfd}.batch-box b{display:block;font-size:18px;color:var(--navy)}.batch-box span{font-size:11px;color:var(--mut)}.manage-list{display:grid;gap:8px;margin:12px 0}.manage-option{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:8px;padding:10px}.manage-option label{display:flex;gap:8px;align-items:center;cursor:pointer}.danger-zone{border-top:1px solid #edc6cc;margin-top:18px;padding-top:14px}.detail-table td:first-child{max-width:260px;word-break:break-word}
+/* [PGDAS] Semáforo, campos monetários e destaque do alerta de CFOP de revenda. */
+.pgdas-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.pgdas-status{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:11px;white-space:nowrap}.pgdas-dot{width:10px;height:10px;border-radius:50%;display:inline-block}.pgdas-green{background:var(--ok)}.pgdas-yellow{background:#d98a1a}.pgdas-red{background:var(--div)}.pgdas-input{width:145px;text-align:right}.pgdas-obs{min-width:220px;width:100%}.pgdas-alert{background:var(--divBg);border:1px solid #edc6cc;border-left:5px solid var(--div);border-radius:8px;padding:10px 12px;margin:7px 0;font-size:12px;color:#6f1b27}.pgdas-config{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.pgdas-config label{display:flex;flex-direction:column;gap:4px;color:var(--mut);font-size:12px;font-weight:600}.pgdas-source{background:#eef5fb;border:1px solid #cbdceb;border-radius:8px;padding:10px 12px;margin-top:10px;color:#31516c}
 @media(max-width:980px){.check-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1100px){.batch-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){
@@ -150,6 +152,7 @@ body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-s
   .tab{white-space:nowrap;flex:0 0 auto}.bar-lb{width:120px}.bar-v{width:86px}.resumo-linha{gap:14px}
   .hero-kpis,.priority-list,.metric-strip{grid-template-columns:1fr 1fr}.section-tabs{flex-wrap:nowrap;overflow-x:auto;width:100%}.op-toolbar .input{min-width:100%}
   .competencia-bar .comp-status{margin-left:0;width:100%}.competencia-bar .select{flex:1;min-width:150px}
+  .pgdas-summary{grid-template-columns:1fr 1fr}.pgdas-input{width:125px}.pgdas-obs{min-width:180px}
 }
 @media(max-width:460px){.hero-kpis,.priority-list,.metric-strip{grid-template-columns:1fr}.stat-n{font-size:19px}}
 @media(max-width:620px){.check-grid,.missing-list{grid-template-columns:1fr}.missing-toolbar{grid-template-columns:1fr}}
@@ -168,7 +171,7 @@ const DB = window.__DB__;
 const { useState, useMemo, useRef, useEffect } = React;
 
 /* ---------- constantes ---------- */
-const APP_VERSION = "3.5.0";
+const APP_VERSION = "3.6.0";
 // [FIX 4] Fonte única dos valores iniciais do período; depois da carga, config.ini/config.fim são a única fonte da interface e dos relatórios.
 const PERIODO_PADRAO = { ini: "2025-06-01", fim: "2026-05-31" };
 // [FIX 1] Conferir a vigência legal antes de publicar (LC 123/2006, arts. 3º e 13-A, e atos do CGSN aplicáveis ao período).
@@ -188,6 +191,9 @@ const CFOPS_FULL_RETORNO = new Set(["1905","2905","1906","2906","1949","2949"]);
 // [FIX 7] Conjuntos específicos para verificar alternância entre produção própria e revenda.
 const CFOPS_PRODUCAO = new Set(["5101","5105","6101","6105"]);
 const CFOPS_REVENDA = new Set(["5106","6106"]);
+// [PGDAS] Contexto fixo da empresa: competência e uma única segregação no Anexo II.
+const PGDAS_PADRAO = { toleranciaReais:0, toleranciaPercentual:0.5, fonteRbt12:"apurada" };
+const PGDAS_SEGREGACAO = "Venda de mercadorias industrializadas pelo contribuinte, exceto para o exterior — sem ST, monofasia ou antecipação com encerramento (Anexo II)";
 const EVENTOS_SRE = {
   "2025-12-01": { ato: "Portaria SRE 85/2025", tipo: "inclusao", cest: "25.032.00", ncm: "87046000", anexo: "ANEXO VI" },
   "2026-01-01": { ato: "Portaria SRE 64/2025", tipo: "exclusao", anexos: ["ANEXO IX","ANEXO X","ANEXO XV","ANEXO XX"], parciais: ["ANEXO XIV","ANEXO XVI","ANEXO XVII"] },
@@ -201,6 +207,14 @@ const fmtBRL = v => (Number(v)||0).toLocaleString("pt-BR",{style:"currency",curr
 const fmtNum = v => (Number(v)||0).toLocaleString("pt-BR");
 // [FIX 9] O documento exibido vem do XML e recebe máscara somente para apresentação.
 const fmtCnpj = v => {const d=onlyDigits(v);return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5"):"CNPJ não informado";};
+// [PGDAS] Aceita digitação monetária brasileira sem perder compatibilidade com números antigos do backup.
+function parseMoedaBr(v){
+  if(typeof v==="number")return Number.isFinite(v)?v:0;
+  const s=String(v??"").trim();if(!s)return 0;
+  const limpo=s.replace(/R\$|\s/g,"");
+  const normalizado=limpo.includes(",")?limpo.replace(/\./g,"").replace(",","."):limpo;
+  const n=Number(normalizado.replace(/[^0-9.-]/g,""));return Number.isFinite(n)?n:0;
+}
 const origemCodigo = v => ORIGENS_DOCUMENTO[v] ? v : ORIGEM_LEGADO;
 const origemNome = v => ORIGENS_DOCUMENTO[origemCodigo(v)];
 const comOrigem = (registro,origem=ORIGEM_LEGADO) => ({...registro,origemMarketplace:origemCodigo(registro&&registro.origemMarketplace||origem)});
@@ -1159,13 +1173,25 @@ function itemSemCestSinalizavel(r,ncmsComCest){
 function calcularRbt12(notes,targetDoc){
   const vendas=[];
   (notes||[]).forEach(n=>(n.itens||[]).forEach(it=>{if(classificarOperacaoItem(n,it,targetDoc).key==="receita"&&dtOnly(n.dhEmi))vendas.push({data:dtOnly(n.dhEmi),valor:valorItem(it)});}));
-  if(!vendas.length)return {valor:0,inicio:"—",fim:"—",pctSublimite:0,pctTeto:0,distSublimite:LIMITES_SIMPLES.sublimiteIcmsIss,distTeto:LIMITES_SIMPLES.teto,nivel:"ok"};
+  if(!vendas.length)return montarIndicadorRbt12(0,"—","—","apurada");
   const ultima=vendas.reduce((a,b)=>a.data>b.data?a:b).data, fimMes=ultima.slice(0,7);
   const [ano,mes]=fimMes.split("-").map(Number),iniDate=new Date(Date.UTC(ano,mes-12,1)),inicio=`${iniDate.getUTCFullYear()}-${String(iniDate.getUTCMonth()+1).padStart(2,"0")}`;
   const valor=vendas.filter(v=>v.data.slice(0,7)>=inicio&&v.data.slice(0,7)<=fimMes).reduce((s,v)=>s+v.valor,0);
+  return montarIndicadorRbt12(valor,inicio,fimMes,"apurada");
+}
+function montarIndicadorRbt12(valor,inicio,fim,fonte,competenciasPreenchidas){
   const pctSublimite=valor/LIMITES_SIMPLES.sublimiteIcmsIss,pctTeto=valor/LIMITES_SIMPLES.teto;
   const nivel=valor>=LIMITES_SIMPLES.teto?"teto":valor>=LIMITES_SIMPLES.sublimiteIcmsIss?"sublimite":pctSublimite>=1-LIMITES_SIMPLES.margemAlerta||pctTeto>=1-LIMITES_SIMPLES.margemAlerta?"alerta":"ok";
-  return {valor,inicio,fim:fimMes,pctSublimite,pctTeto,distSublimite:LIMITES_SIMPLES.sublimiteIcmsIss-valor,distTeto:LIMITES_SIMPLES.teto-valor,nivel};
+  return {valor,inicio,fim,pctSublimite,pctTeto,distSublimite:LIMITES_SIMPLES.sublimiteIcmsIss-valor,distTeto:LIMITES_SIMPLES.teto-valor,nivel,fonte,competenciasPreenchidas:competenciasPreenchidas||0};
+}
+// [PGDAS] Alternativa declarada do RBT12, usando somente competências efetivamente preenchidas.
+function calcularRbt12Declarada(pgdasValores,referencia){
+  const preenchidas=Object.entries(pgdasValores||{}).filter(([c,v])=>/^\d{4}-\d{2}$/.test(c)&&String((v&&v.declarada)??"").trim()!=="");
+  const compsPreenchidas=preenchidas.map(([c])=>c).sort(),fim=preenchidas.length?compsPreenchidas[compsPreenchidas.length-1]:(referencia.fim!=="—"?referencia.fim:"");
+  if(!fim)return montarIndicadorRbt12(0,"—","—","declarada",0);
+  const [ano,mes]=fim.split("-").map(Number),iniDate=new Date(Date.UTC(ano,mes-12,1)),inicio=`${iniDate.getUTCFullYear()}-${String(iniDate.getUTCMonth()+1).padStart(2,"0")}`;
+  const dentro=preenchidas.filter(([c])=>c>=inicio&&c<=fim),valor=dentro.reduce((s,[,v])=>s+parseMoedaBr(v.declarada),0);
+  return montarIndicadorRbt12(valor,inicio,fim,"declarada",dentro.length);
 }
 
 function baseResumoFiscal(){return {docs:new Map(),itens:0,vProd:0,vDesc:0,vFrete:0,vSeg:0,vOutro:0,alertas:0,cfops:new Set(),naturezas:new Set(),classes:new Set()};}
@@ -1203,6 +1229,33 @@ function consolidarCompetencias(notes,ctes,targetDoc){
   });
   (ctes||[]).forEach(c=>{const comp=competenciaDe(c.dhEmi);if(!comp)return;const g=mes(comp);g.ctes.add(c.chave||c.arquivo);g.frete+=Number(c.vTPrest)||0;});
   return [...map.values()].map(g=>({...g,notasQtd:g.notas.size,ctesQtd:g.ctes.size,liquida:g.receita-g.devolucoes})).sort((a,b)=>a.competencia.localeCompare(b.competencia));
+}
+
+// [PGDAS] Gera todas as competências do período, inclusive meses sem notas.
+function competenciasDoPeriodo(ini,fim){
+  const a=(ini||"").slice(0,7),b=(fim||"").slice(0,7);if(!/^\d{4}-\d{2}$/.test(a)||!/^\d{4}-\d{2}$/.test(b)||a>b)return [];
+  const out=[];let [ano,mes]=a.split("-").map(Number);for(let i=0;i<240;i++){const c=`${ano}-${String(mes).padStart(2,"0")}`;if(c>b)break;out.push(c);mes++;if(mes===13){mes=1;ano++;}}return out;
+}
+function statusPgdas(apurada,declarada,preenchida,cfg){
+  if(!preenchida)return {diferenca:0,diferencaPct:null,limite:Math.max(parseMoedaBr(cfg.toleranciaReais),Math.abs(apurada)*(Number(cfg.toleranciaPercentual)||0)/100),status:"Pendente",risco:"Aguardando valor declarado",semaforo:"yellow"};
+  const diferenca=declarada-apurada,diferencaPct=apurada===0?(diferenca===0?0:null):diferenca/apurada*100,limite=Math.max(parseMoedaBr(cfg.toleranciaReais),Math.abs(apurada)*(Number(cfg.toleranciaPercentual)||0)/100),conciliado=Math.abs(diferenca)<=limite;
+  return {diferenca,diferencaPct,limite,status:conciliado?"Conciliado":"Divergente",risco:conciliado?"Dentro da tolerância":diferenca<0?"Possível omissão de receita":"Declarou a maior (verificar/retificar)",semaforo:conciliado?"green":diferenca<0?"red":"yellow"};
+}
+// [PGDAS] Conciliação única do Anexo II, por competência de emissão e com base em vProd.
+function montarConciliacaoPgdas(notes,targetDoc,config,pgdasValores,pgdasConfig){
+  const base=new Map(competenciasDoPeriodo(config.ini,config.fim).map(c=>[c,{competencia:c,vendas:0,devolucoes:0,apurada:0,revendaItens:0,revendaNotas:new Set(),revendaValor:0}]));
+  (notes||[]).forEach(n=>{const c=competenciaDe(n.dhEmi);if(!base.has(c))return;const g=base.get(c);(n.itens||[]).forEach(it=>{const op=classificarOperacaoItem(n,it,targetDoc),v=valorItem(it);if(op.key==="receita")g.vendas+=v;else if(op.key==="devolucao_venda")g.devolucoes+=v;if(op.key==="receita"&&CFOPS_REVENDA.has(onlyDigits(it.cfop))){g.revendaItens++;g.revendaNotas.add(docKey(n));g.revendaValor+=v;}});});
+  const linhas=[...base.values()].map(g=>{const salvo=pgdasValores&&pgdasValores[g.competencia]||{},preenchida=String(salvo.declarada??"").trim()!=="",declarada=preenchida?parseMoedaBr(salvo.declarada):0,apurada=g.vendas-g.devolucoes;return {...g,apurada,declarada,preenchida,observacao:salvo.observacao||"",revendaNotasQtd:g.revendaNotas.size,...statusPgdas(apurada,declarada,preenchida,pgdasConfig)};});
+  const totalApurada=linhas.reduce((s,x)=>s+x.apurada,0),totalDeclarada=linhas.reduce((s,x)=>s+x.declarada,0),todasPreenchidas=linhas.every(x=>x.preenchida),st=statusPgdas(totalApurada,totalDeclarada,todasPreenchidas,pgdasConfig),diferencaTotal=totalDeclarada-totalApurada,diferencaPctTotal=totalApurada===0?(diferencaTotal===0?0:null):diferencaTotal/totalApurada*100;
+  return {linhas,total:{apurada:totalApurada,declarada:totalDeclarada,preenchida:todasPreenchidas,...st,diferenca:diferencaTotal,diferencaPct:diferencaPctTotal},revendaItens:linhas.reduce((s,x)=>s+x.revendaItens,0),revendaNotas:linhas.reduce((s,x)=>s+x.revendaNotasQtd,0),revendaValor:linhas.reduce((s,x)=>s+x.revendaValor,0)};
+}
+// [PGDAS] No modo “apurada”, o RBT12 usa a mesma base líquida da conciliação: vendas menos devoluções.
+function calcularRbt12ApuradaPgdas(dados){
+  const todas=dados&&dados.linhas||[],comMovimento=todas.filter(x=>x.vendas||x.devolucoes),ultima=comMovimento.length?comMovimento[comMovimento.length-1]:todas[todas.length-1],fim=ultima&&ultima.competencia||"";
+  if(!fim)return montarIndicadorRbt12(0,"—","—","apurada",0);
+  const [ano,mes]=fim.split("-").map(Number),iniDate=new Date(Date.UTC(ano,mes-12,1)),inicio=`${iniDate.getUTCFullYear()}-${String(iniDate.getUTCMonth()+1).padStart(2,"0")}`;
+  const dentro=dados.linhas.filter(x=>x.competencia>=inicio&&x.competencia<=fim),valor=dentro.reduce((s,x)=>s+x.apurada,0);
+  return montarIndicadorRbt12(valor,inicio,fim,"apurada",dentro.length);
 }
 
 /* ---- dossiê exportável da consultoria ---- */
@@ -1281,6 +1334,7 @@ function montarDadosDossie(d){
     // [FIX 1] e [FIX 5] O dossiê replica os mesmos indicadores usados no painel.
     ["Notas incluídas",d.M.notas],["Documentos únicos",d.M.documentosUnicos],["Linhas no log de importação",d.M.linhasLogImportacao],["Itens analisados",d.M.itens],["Produtos únicos",d.M.produtos.size],["NCMs",d.M.ncms.size],["CT-e vinculados",d.M.ctes],["Inutilizações homologadas",d.M.inutilizacoes],
     ["RBT12 — todos os canais",d.RBT12.valor],["Percentual do sublimite",(d.RBT12.pctSublimite*100).toFixed(2)+"%"],["Percentual do teto",(d.RBT12.pctTeto*100).toFixed(2)+"%"],
+    ["Fonte do RBT12",d.RBT12.fonte==="declarada"?"PGDAS-D declarado":"Notas fiscais apuradas"],["PGDAS — total apurado",d.conciliacaoPgdas.total.apurada],["PGDAS — total declarado",d.conciliacaoPgdas.total.declarada],["PGDAS — diferença",d.conciliacaoPgdas.total.diferenca],["PGDAS — status",d.conciliacaoPgdas.total.status],["CFOP de revenda — itens",d.conciliacaoPgdas.revendaItens],["CFOP de revenda — valor",d.conciliacaoPgdas.revendaValor],
     ["Documentos excluídos",d.M.excluidas],["Receita provável (vProd)",d.M.valorVendas],["Devoluções de venda",d.M.valorDevolucoes],["Receita provável líquida",d.M.saldoVendas],["Saídas sem receita provável",d.M.valorSemReceita],
     ["Movimentação para FULL",d.M.valorFullSaidas],["Retorno FULL",d.M.valorFullRetornos],["Saídas a classificar",d.M.valorRevisar],["Fretes CT-e",d.M.valorFrete],["Lacunas de sequência",d.M.lacunasSequencia],
     ["Possíveis monofásicos",d.M.mono],["Possível alíquota zero",d.M.zero],["Possível ICMS-ST/SP",d.M.st],["Possível antecipação 426-A",d.M.ant],["Revisões manuais",d.M.revisao]
@@ -1295,24 +1349,29 @@ function montarDadosDossie(d){
     ["Receita provável","Somatório do vProd dos itens classificados como venda/faturamento. Não equivale automaticamente ao faturamento contábil nem ao total vNF."],
     ["Devoluções","Itens classificados como devolução de venda são apresentados separadamente e deduzidos apenas na métrica de receita provável líquida."],
     ["Estoque FULL","CFOPs 5905/6905/5906/6906/5949/6949 são movimentações para estoque FULL e não integram receita; 1905/2905/1906/2906/1949/2949 são retornos."],
+    ["Conciliação PGDAS","Regime de competência pela data de emissão. Uma única segregação do Anexo II. Receita apurada = vProd das vendas menos devoluções da mesma competência."],
+    ["Tolerância PGDAS",`Maior valor entre ${fmtBRL(parseMoedaBr(d.pgdasConfig.toleranciaReais))} e ${Number(d.pgdasConfig.toleranciaPercentual)||0}% da receita apurada.`],
+    ["CFOP de revenda","Os CFOPs 5106/6106 permanecem na receita, mas são sinalizados como erro de emissão por se tratar de produção própria."],
     ["CT-e Mercado Livre","O vínculo com a empresa é aceito quando ela aparece como remetente, destinatária, expedidora, recebedora, tomadora, participante ou emitente de NF-e referenciada."],
     ["Sequência","Conferida por CNPJ emitente, modelo e série. Cancelamentos homologados e inutilizações ocupam seus números."],
     ["Limitações","A ferramenta não substitui conciliações contábeis, EFD, PGDAS-D/DCTF, extratos fiscais, livros, razão, balancetes ou parecer profissional."],
     ["Preservação","O backup JSON preserva o projeto processado; os XMLs originais devem continuar arquivados externamente."]
   ].map(([tema,criterio])=>({tema,criterio}));
   const logs=d.logs.map(l=>({arquivo:l.arquivo,origem_marketplace:origemNome(l.origemMarketplace),competencia:l.competencia,serie:l.serie||"",numero:l.numero||"",hash_sha256:l.hash,data_importacao:l.data,chave:l.chave,situacao:l.status,itens:l.itens,alertas:l.alertas}));
+  // [PGDAS] A conciliação e seus parâmetros integram o dossiê, sem depender do filtro visual de marketplace.
+  const conciliacaoPgdas=d.conciliacaoPgdas.linhas.map(x=>({competencia:x.competencia,regime_reconhecimento:"Competência — data de emissão",segregacao:PGDAS_SEGREGACAO,vendas_vprod:x.vendas,devolucoes_venda:x.devolucoes,receita_apurada:x.apurada,receita_declarada:x.preenchida?x.declarada:"",diferenca_reais:x.preenchida?x.diferenca:"",diferenca_percentual:x.preenchida&&x.diferencaPct!=null?x.diferencaPct:"",tolerancia_reais:d.pgdasConfig.toleranciaReais,tolerancia_percentual:d.pgdasConfig.toleranciaPercentual,tolerancia_aplicada:x.limite,status:x.status,risco:x.risco,cfop_revenda_itens:x.revendaItens,cfop_revenda_notas:x.revendaNotasQtd,cfop_revenda_valor:x.revendaValor,observacao:x.observacao}));
   const sheets=[{name:"01_Capa",rows:capa},{name:"02_Resumo",rows:resumo},{name:"03_Competencias",rows:competencias},{name:"04_Operacoes",rows:operacoes},{name:"05_CFOP",rows:cfops},
     {name:"06_Documentos_NFe",rows:documentos},{name:"07_Itens",rows:itens},{name:"08_Produtos_NCM",rows:produtos},{name:"09_CTe_Fretes",rows:ctes},{name:"10_Eventos",rows:eventos},
-    {name:"11_Inutilizacoes",rows:inutilizacoes},{name:"12_Sequencia",rows:sequencia},{name:"13_Excluidos",rows:excluidos},{name:"14_Alertas",rows:alertas},{name:"15_Log_Importacao",rows:logs},{name:"16_Checklist",rows:checklist},{name:"17_Ultimo_Lote",rows:ultimoLote},{name:"18_Metodologia",rows:metodologia}];
-  return {geradoEm,capa,resumo,competencias,checklist,ultimoLote,operacoes,cfops,documentos,itens,produtos,ctes,eventos,inutilizacoes,sequencia,excluidos,alertas,logs,metodologia,sheets};
+    {name:"11_Inutilizacoes",rows:inutilizacoes},{name:"12_Sequencia",rows:sequencia},{name:"13_Excluidos",rows:excluidos},{name:"14_Alertas",rows:alertas},{name:"15_Log_Importacao",rows:logs},{name:"16_Checklist",rows:checklist},{name:"17_Ultimo_Lote",rows:ultimoLote},{name:"18_Metodologia",rows:metodologia},{name:"19_Conciliacao_PGDAS",rows:conciliacaoPgdas}];
+  return {geradoEm,capa,resumo,competencias,checklist,ultimoLote,operacoes,cfops,documentos,itens,produtos,ctes,eventos,inutilizacoes,sequencia,excluidos,alertas,logs,metodologia,conciliacaoPgdas,sheets};
 }
 function tabelaHtml(rows,cols,limite){
   const dados=typeof limite==="number"?rows.slice(0,limite):rows;
   if(!dados.length)return '<p class="vazio">Nenhum registro.</p>';
-  return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${escHtml(c[1])}</th>`).join("")}</tr></thead><tbody>${dados.map(r=>`<tr>${cols.map(c=>`<td>${c[2]==="money"?escHtml(fmtBRL(Number(r[c[0]])||0)):escHtml(r[c[0]]||"—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${limite&&rows.length>limite?`<p class="nota">Exibidos ${limite} de ${rows.length} registros. A planilha analítica contém todos.</p>`:""}`;
+  return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${escHtml(c[1])}</th>`).join("")}</tr></thead><tbody>${dados.map(r=>`<tr>${cols.map(c=>`<td>${c[2]==="money"?(r[c[0]]===""||r[c[0]]==null?"—":escHtml(fmtBRL(Number(r[c[0]])||0))):escHtml(r[c[0]]||"—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${limite&&rows.length>limite?`<p class="nota">Exibidos ${limite} de ${rows.length} registros. A planilha analítica contém todos.</p>`:""}`;
 }
 function gerarRelatorioTecnicoHTML(d,dados){
-  const kpis=[["RBT12 — todos os canais",fmtBRL(d.RBT12.valor)],["% do sublimite",(d.RBT12.pctSublimite*100).toFixed(1)+"%"],["Receita provável",fmtBRL(d.M.valorVendas)],["Devoluções",fmtBRL(d.M.valorDevolucoes)],["Documentos únicos",fmtNum(d.M.documentosUnicos)],["Linhas de log",fmtNum(d.M.linhasLogImportacao)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
+  const kpis=[[`RBT12 — ${d.RBT12.fonte==="declarada"?"PGDAS-D":"notas"}`,fmtBRL(d.RBT12.valor)],["% do sublimite",(d.RBT12.pctSublimite*100).toFixed(1)+"%"],["PGDAS — apurado",fmtBRL(d.conciliacaoPgdas.total.apurada)],["PGDAS — declarado",fmtBRL(d.conciliacaoPgdas.total.declarada)],["Documentos únicos",fmtNum(d.M.documentosUnicos)],["Linhas de log",fmtNum(d.M.linhasLogImportacao)],["Lacunas de sequência",fmtNum(d.M.lacunasSequencia)],["Alertas",fmtNum(dados.alertas.length)]];
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório técnico fiscal - ${escHtml(periodoDossie(d))}</title><style>
   :root{--navy:#0f2a43;--blue:#2f6db3;--line:#d8e0e8;--mut:#657386;--bg:#f3f5f8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#202b36;font:14px/1.45 Arial,sans-serif}.page{max-width:1180px;margin:24px auto;background:#fff;padding:34px 38px;box-shadow:0 2px 12px #0001}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid var(--navy);padding-bottom:18px}.head h1{margin:0;color:var(--navy);font-size:25px}.head p{margin:5px 0;color:var(--mut)}button{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:9px 14px;cursor:pointer}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}.kpi{border:1px solid var(--line);border-radius:7px;padding:12px}.kpi b{display:block;color:var(--navy);font-size:17px}.kpi span{font-size:12px;color:var(--mut)}h2{color:var(--navy);font-size:18px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}.call{background:#eef5fb;border-left:4px solid var(--blue);padding:12px 14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{background:#edf2f7;color:var(--navy)}.nota,.vazio{color:var(--mut);font-size:12px}.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:12px;color:var(--mut);font-size:11px}@media(max-width:800px){.page{margin:0;padding:20px}.kpis{grid-template-columns:repeat(2,1fr)}.head{display:block}.head button{margin-top:12px}}@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:15mm}.no-print{display:none}.table-wrap{overflow:visible}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
   </style></head><body><main class="page"><header class="head"><div><h1>B4P 360 — DIAGNÓSTICO TRIBUTÁRIO</h1><p><b>${escHtml(d.config.empresa)}</b> · ${escHtml(d.targetDoc?fmtCnpj(d.targetDoc):"CNPJ não informado")} · ${escHtml(periodoDossie(d))}</p><p>Origem: ${escHtml(d.origemFiltro&&d.origemFiltro!=="todas"?origemNome(d.origemFiltro):"Todos os marketplaces")} · gerado em ${escHtml(dados.geradoEm)} · versão ${APP_VERSION}</p></div><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button></header>
@@ -1320,14 +1379,15 @@ function gerarRelatorioTecnicoHTML(d,dados){
   <div class="call"><b>Critério de receita:</b> apenas os CFOPs 5101/5102/5105/5106/6101/6102/6105/6106, pelo valor dos produtos (vProd), com devoluções segregadas. Os CFOPs de movimentação FULL configurados não são receita.</div>
   <h2>1. Checklist dos documentos importados</h2>${tabelaHtml(dados.checklist,[["categoria","Categoria"],["status","Status"],["quantidade","Quantidade"],["detalhe","Detalhe"]])}
   <h2>2. Resumo por competência</h2>${tabelaHtml(dados.competencias,[["competencia","Competência"],["notas","NF-e"],["ctes","CT-e"],["receita_provavel","Receita provável","money"],["devolucoes_venda","Devoluções","money"],["receita_liquida_provavel","Líquida provável","money"],["fretes_cte","Fretes","money"]])}
-  <h2>3. Resumo por operação</h2>${tabelaHtml(dados.operacoes,[["operacao","Natureza da operação"],["classificacao","Classificação"],["documentos","Docs."],["itens","Itens"],["cfops","CFOPs"],["valor_produtos","Produtos","money"],["total_nfe","Total NF-e","money"],["itens_com_alerta","Alertas"]])}
-  <h2>4. Resumo por CFOP</h2>${tabelaHtml(dados.cfops,[["cfop","CFOP"],["descricao","Descrição"],["classificacao","Classificação"],["naturezas","Naturezas"],["documentos","Docs."],["itens","Itens"],["valor_produtos","Produtos","money"],["itens_com_alerta","Alertas"]])}
-  <h2>5. Produtos e NCMs de maior impacto</h2>${tabelaHtml(dados.produtos,[["codigo_produto","Código"],["descricao","Produto"],["ncm","NCM"],["cest","CEST"],["ocorrencias","Ocorr."],["valor_produtos","Valor","money"],["cfops","CFOPs"],["alertas","Alertas"]],50)}
-  <h2>6. CT-e e fretes</h2>${tabelaHtml(dados.ctes,[["numero","Número"],["emissao","Emissão"],["emitente","Transportadora"],["remetente","Remetente"],["vinculo_empresa","Vínculo"],["valor_prestacao","Prestação","money"],["situacao","Situação"],["motivo_exclusao","Motivo da exclusão"]],100)}
-  <h2>7. Quebras de sequência</h2>${tabelaHtml(dados.sequencia,[["documento","Documento"],["serie","Série"],["inicio_analisado","Início"],["fim_analisado","Fim"],["lacuna_inicio","Lacuna inicial"],["lacuna_fim","Lacuna final"],["quantidade_faltante","Qtd. faltante"],["status","Status"]])}
-  <h2>8. Documentos fora da análise</h2>${tabelaHtml(dados.excluidos,[["tipo","Tipo"],["arquivo","Arquivo"],["emissao","Emissão"],["numero","Número"],["valor","Valor","money"],["motivo","Motivo"]],200)}
-  <h2>9. Alertas e pontos de revisão</h2>${tabelaHtml(dados.alertas,[["numero","NF-e"],["item","Item"],["produto","Produto"],["ncm","NCM"],["cfop","CFOP"],["tipo","Tipo"],["modulo","Módulo"],["mensagem","Mensagem"],["confianca","Confiança"]],200)}
-  <h2>10. Metodologia e limitações</h2>${tabelaHtml(dados.metodologia,[["tema","Tema"],["criterio","Critério"]])}
+  <h2>3. Conciliação PGDAS-D × notas fiscais</h2><div class="call"><b>Segregação:</b> ${escHtml(PGDAS_SEGREGACAO)}. Fonte do RBT12: ${escHtml(d.RBT12.fonte==="declarada"?"receita declarada no PGDAS-D":"receita apurada pelas notas")}.</div>${tabelaHtml(dados.conciliacaoPgdas,[["competencia","Competência"],["receita_apurada","Apurada","money"],["receita_declarada","Declarada","money"],["diferenca_reais","Diferença","money"],["diferenca_percentual","Dif. %"],["status","Status"],["risco","Risco"],["cfop_revenda_itens","Itens 5106/6106"],["cfop_revenda_valor","Valor 5106/6106","money"],["observacao","Observação"]])}
+  <h2>4. Resumo por operação</h2>${tabelaHtml(dados.operacoes,[["operacao","Natureza da operação"],["classificacao","Classificação"],["documentos","Docs."],["itens","Itens"],["cfops","CFOPs"],["valor_produtos","Produtos","money"],["total_nfe","Total NF-e","money"],["itens_com_alerta","Alertas"]])}
+  <h2>5. Resumo por CFOP</h2>${tabelaHtml(dados.cfops,[["cfop","CFOP"],["descricao","Descrição"],["classificacao","Classificação"],["naturezas","Naturezas"],["documentos","Docs."],["itens","Itens"],["valor_produtos","Produtos","money"],["itens_com_alerta","Alertas"]])}
+  <h2>6. Produtos e NCMs de maior impacto</h2>${tabelaHtml(dados.produtos,[["codigo_produto","Código"],["descricao","Produto"],["ncm","NCM"],["cest","CEST"],["ocorrencias","Ocorr."],["valor_produtos","Valor","money"],["cfops","CFOPs"],["alertas","Alertas"]],50)}
+  <h2>7. CT-e e fretes</h2>${tabelaHtml(dados.ctes,[["numero","Número"],["emissao","Emissão"],["emitente","Transportadora"],["remetente","Remetente"],["vinculo_empresa","Vínculo"],["valor_prestacao","Prestação","money"],["situacao","Situação"],["motivo_exclusao","Motivo da exclusão"]],100)}
+  <h2>8. Quebras de sequência</h2>${tabelaHtml(dados.sequencia,[["documento","Documento"],["serie","Série"],["inicio_analisado","Início"],["fim_analisado","Fim"],["lacuna_inicio","Lacuna inicial"],["lacuna_fim","Lacuna final"],["quantidade_faltante","Qtd. faltante"],["status","Status"]])}
+  <h2>9. Documentos fora da análise</h2>${tabelaHtml(dados.excluidos,[["tipo","Tipo"],["arquivo","Arquivo"],["emissao","Emissão"],["numero","Número"],["valor","Valor","money"],["motivo","Motivo"]],200)}
+  <h2>10. Alertas e pontos de revisão</h2>${tabelaHtml(dados.alertas,[["numero","NF-e"],["item","Item"],["produto","Produto"],["ncm","NCM"],["cfop","CFOP"],["tipo","Tipo"],["modulo","Módulo"],["mensagem","Mensagem"],["confianca","Confiança"]],200)}
+  <h2>11. Metodologia e limitações</h2>${tabelaHtml(dados.metodologia,[["tema","Tema"],["criterio","Critério"]])}
   <p class="foot">Relatório técnico de triagem e apoio à consultoria. Não constitui parecer tributário definitivo e deve ser conciliado com a contabilidade, escriturações e demais documentos do cliente. A planilha analítica integrante do pacote contém os registros completos.</p></main></body></html>`;
 }
 function exportarXlsxDossie(d){const dados=montarDadosDossie(d);xlsxDownload(dados.sheets,`${nomeBaseDossie(d)}_Analitico.xlsx`);}
@@ -1339,7 +1399,7 @@ async function exportarPacoteDossie(d){
   const dados=montarDadosDossie(d),zip=new JSZip(),base=nomeBaseDossie(d);
   const wb=criarWorkbook(dados.sheets),xlsx=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   zip.file(`${base}_Analitico.xlsx`,xlsx);zip.file(`${base}_Relatorio_Tecnico.html`,gerarRelatorioTecnicoHTML(d,dados));
-  zip.file(`${base}_Resumo_Executivo.txt`,gerarResumo(d.M,d.rows,d.config,d.targetDoc,d.competencia,d.RBT12));
+  zip.file(`${base}_Resumo_Executivo.txt`,gerarResumo(d.M,d.rows,d.config,d.targetDoc,d.competencia,d.RBT12,d.conciliacaoPgdas,d.pgdasConfig));
   zip.file("B4P_Backup_Projeto_Completo.json",jsonBackupProjeto(d.projectData));
   zip.file("LEIA-ME.txt",`PACOTE DE CONFERÊNCIA FISCAL\n\nPeríodo: ${periodoDossie(d)}\nGerado em: ${dados.geradoEm}\n\nConteúdo:\n- Planilha analítica completa em XLSX;\n- Relatório técnico em HTML, pronto para impressão/PDF;\n- Resumo executivo em TXT;\n- Backup restaurável do projeto em JSON.\n\nMantenha os XMLs originais arquivados separadamente. O backup preserva os dados processados, não os arquivos XML originais.`);
   downloadBlob(`${base}_Pacote_Completo.zip`,await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}}));
@@ -1359,6 +1419,9 @@ function App(){
   // [FIX 5] Nenhum canal é presumido na importação; o usuário identifica cada novo lote.
   const [importOrigin,setImportOrigin]=useState("");
   const [config,setConfig]=useState({empresa:"B4P Confecções LTDA",cnpj:B4P_CNPJ,uf:"SP",regime:"Simples Nacional",ini:PERIODO_PADRAO.ini,fim:PERIODO_PADRAO.fim});
+  // [PGDAS] Novos campos são opcionais no projeto; backups antigos carregam os padrões sem migração destrutiva.
+  const [pgdasValores,setPgdasValores]=useState({});
+  const [pgdasConfig,setPgdasConfig]=useState(PGDAS_PADRAO);
   const [processing,setProcessing]=useState(false);
   const [hydrated,setHydrated]=useState(false);
   const [importError,setImportError]=useState("");
@@ -1377,6 +1440,8 @@ function App(){
       if(Array.isArray(p.inutilizacoes))setInutilizacoes(p.inutilizacoes.map(n=>comOrigem(n)));
       if(p.ultimoLote)setUltimoLote({...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)});
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
+      if(p.pgdasValores&&typeof p.pgdasValores==="object")setPgdasValores(p.pgdasValores);
+      if(p.pgdasConfig&&typeof p.pgdasConfig==="object")setPgdasConfig(c=>({...c,...p.pgdasConfig}));
       if(typeof p.competencia==="string")setCompetencia(p.competencia);
       // [FIX 5] A abertura sempre começa consolidada; filtros usados em sessões anteriores não ficam pré-selecionados.
       setOrigemFiltro("todas");
@@ -1384,9 +1449,9 @@ function App(){
   },[]);
   useEffect(()=>{
     if(!hydrated)return;
-    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
+    const t=setTimeout(()=>saveProjectState({realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,pgdasValores,pgdasConfig,versao:APP_VERSION}).then(()=>setStorageOk(true)).catch(()=>setStorageOk(false)),250);
     return ()=>clearTimeout(t);
-  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro]);
+  },[hydrated,realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,pgdasValores,pgdasConfig]);
 
   const notes=useMemo(()=>realNotes.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[realNotes,origemFiltro]);
   const ctesFiltrados=useMemo(()=>ctes.filter(r=>origemFiltro==="todas"||origemCodigo(r&&r.origemMarketplace)===origemFiltro),[ctes,origemFiltro]);
@@ -1400,7 +1465,11 @@ function App(){
   // [FIX 1] O RBT12 ignora o filtro visual de marketplace e consolida todos os canais carregados.
   const canceladasTodos=useMemo(()=>new Set(eventos.filter(e=>e.subtipo==="Cancelamento"&&CSTAT_CANCELAMENTO.has(e.cStat)).map(e=>e.chave).filter(Boolean)),[eventos]);
   const notasRbt12=useMemo(()=>realNotes.filter(n=>!motivoExclusao(n,config,canceladasTodos,targetDoc)),[realNotes,config,canceladasTodos,targetDoc]);
-  const RBT12=useMemo(()=>calcularRbt12(notasRbt12,targetDoc),[notasRbt12,targetDoc]);
+  // [PGDAS] A conciliação sempre considera todos os canais, mesmo quando a interface está filtrada por marketplace.
+  const conciliacaoPgdas=useMemo(()=>montarConciliacaoPgdas(notasRbt12,targetDoc,config,pgdasValores,pgdasConfig),[notasRbt12,targetDoc,config,pgdasValores,pgdasConfig]);
+  const RBT12Apurada=useMemo(()=>calcularRbt12ApuradaPgdas(conciliacaoPgdas),[conciliacaoPgdas]);
+  const RBT12Declarada=useMemo(()=>calcularRbt12Declarada(pgdasValores,RBT12Apurada),[pgdasValores,RBT12Apurada]);
+  const RBT12=pgdasConfig.fonteRbt12==="declarada"?RBT12Declarada:RBT12Apurada;
   const competencias=useMemo(()=>{
     const ini=(config.ini||"").slice(0,7),fim=(config.fim||"").slice(0,7),datas=[...notes.map(n=>n.dhEmi),...ctesFiltrados.map(c=>c.dhEmi),...eventosFiltrados.map(e=>e.dhEvento),...inutsFiltradas.map(x=>x.dhRecbto)];
     return [...new Set(datas.map(competenciaDe).filter(c=>c&&(!ini||c>=ini)&&(!fim||c<=fim)))].sort();
@@ -1519,9 +1588,9 @@ function App(){
   }, [rows,activeNotes,excludedNotes,activeCtes,excludedCtes,activeInuts,logsAnalise,targetDoc,resumoSeq]);
 
   const projectData=useMemo(()=>({schema:"b4p-fiscal-project",schemaVersion:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),
-    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro]);
-  const dossieData=useMemo(()=>({M,RBT12,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
-    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,RBT12,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
+    realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,pgdasValores,pgdasConfig}),[realNotes,logs,eventos,ctes,inutilizacoes,ultimoLote,config,competencia,origemFiltro,pgdasValores,pgdasConfig]);
+  const dossieData=useMemo(()=>({M,RBT12,conciliacaoPgdas,pgdasConfig,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notes:notesVisiveis,ctes:ctesVisiveis,eventos:eventosVisiveis,
+    inutilizacoes:inutsVisiveis,logs:logsAnalise,canceladas,gruposSeq,projectData,checklist:checklistImportacao,ultimoLote}),[M,RBT12,conciliacaoPgdas,pgdasConfig,rows,config,targetDoc,competencia,origemFiltro,resumoMensal,notesVisiveis,ctesVisiveis,eventosVisiveis,inutsVisiveis,logsAnalise,canceladas,gruposSeq,projectData,checklistImportacao,ultimoLote]);
 
   /* ---- upload ---- */
   async function handleFiles(files){
@@ -1629,12 +1698,13 @@ function App(){
       if(!confirm(`Restaurar o backup e substituir os dados atualmente carregados?\n\nNF-e/NFC-e: ${fmtNum(p.realNotes.length)}\nCT-e: ${fmtNum(p.ctes.length)}\nEventos: ${fmtNum(p.eventos.length)}\nInutilizações: ${fmtNum(p.inutilizacoes.length)}`))return;
       setRealNotes(p.realNotes.filter(n=>!n.simulado).map(n=>comOrigem(n)));setLogs(p.logs.map(n=>comOrigem(n)));setEventos(p.eventos.map(n=>comOrigem(n)));setCtes(p.ctes.map(n=>comOrigem(n)));setInutilizacoes(p.inutilizacoes.map(n=>comOrigem(n)));setUltimoLote(p.ultimoLote?{...p.ultimoLote,origemMarketplace:origemCodigo(p.ultimoLote.origemMarketplace)}:null);
       if(p.config)setConfig(c=>({...c,...p.config,cnpj:onlyDigits(p.config.cnpj)||B4P_CNPJ}));
+      setPgdasValores(p.pgdasValores&&typeof p.pgdasValores==="object"?p.pgdasValores:{});setPgdasConfig({...PGDAS_PADRAO,...(p.pgdasConfig&&typeof p.pgdasConfig==="object"?p.pgdasConfig:{})});
       setCompetencia(typeof p.competencia==="string"?p.competencia:"todas");setOrigemFiltro("todas");setImportOrigin("");setImportError("");setTab("inicio");
       alert("Backup restaurado com sucesso.");
     }catch(e){alert(`Não foi possível restaurar o backup: ${e.message||"arquivo inválido"}`);}
   }
 
-  const TABS=[["inicio","Visão geral"],["operacoes","Operações e CFOP"],["produto","Produtos"],["tributos","Tributação"],
+  const TABS=[["inicio","Visão geral"],["operacoes","Operações e CFOP"],["pgdas","Conciliação PGDAS"],["produto","Produtos"],["tributos","Tributação"],
     ["seq","Sequência"],["documentos","Documentos"],["resumo","Relatório"],["config","Configurações"]];
 
   return <div className="app">
@@ -1654,6 +1724,7 @@ function App(){
     <div className="content">
       {tab==="inicio" && <VisaoGeral M={M} RBT12={RBT12} rows={rows} notes={activeNotes} empresa={empresa} config={config} competencia={competencia} resumoMensal={resumoMensal} setCompetencia={setCompetencia} setTab={setTab} excluidas={excludedNotes.length+excludedCtes.length}/>} 
       {tab==="operacoes" && <OperacoesCfop rows={rows} targetDoc={targetDoc} M={M}/>} 
+      {tab==="pgdas" && <ConciliacaoPgdas dados={conciliacaoPgdas} pgdasValores={pgdasValores} setPgdasValores={setPgdasValores} pgdasConfig={pgdasConfig} setPgdasConfig={setPgdasConfig}/>} 
       {tab==="produto" && <ProdutoView rows={rows} targetDoc={targetDoc}/>} 
       {tab==="tributos" && <TributosHub rows={rows} M={M}/>} 
       {tab==="seq" && <Sequencia grupos={gruposSeq} targetDoc={targetDoc} config={config} competencia={competencia}/>} 
@@ -2080,6 +2151,44 @@ function ProdutoView({rows,targetDoc}){
   </Card>;
 }
 
+/* ---------- TAB: Conciliação PGDAS ---------- */
+function SemaforoPgdas({cor,status}){return <span className="pgdas-status"><span className={`pgdas-dot pgdas-${cor}`}></span>{status}</span>;}
+function ConciliacaoPgdas({dados,pgdasValores,setPgdasValores,pgdasConfig,setPgdasConfig}){
+  const alterar=(comp,campo,valor)=>setPgdasValores(p=>({...p,[comp]:{...(p[comp]||{}),[campo]:valor}}));
+  const exportRows=()=>dados.linhas.map(x=>({competencia:x.competencia,regime_reconhecimento:"Competência — data de emissão",segregacao_pgdas:PGDAS_SEGREGACAO,receita_vendas_vprod:x.vendas,devolucoes_venda:x.devolucoes,receita_apurada_liquida:x.apurada,receita_declarada_pgdas:x.preenchida?x.declarada:"",diferenca_reais:x.preenchida?x.diferenca:"",diferenca_percentual:x.preenchida&&x.diferencaPct!=null?x.diferencaPct:"",tolerancia_aplicada:x.limite,status:x.status,risco:x.risco,cfop_revenda_itens:x.revendaItens,cfop_revenda_notas:x.revendaNotasQtd,cfop_revenda_valor:x.revendaValor,observacao:x.observacao}));
+  const exportar=tipo=>{const rows=exportRows();if(tipo==="csv")download("conciliacao_pgdas_notas.csv",toCSV(rows),"text/csv;charset=utf-8");else xlsxDownload([{name:"Conciliação PGDAS",rows}],"conciliacao_pgdas_notas.xlsx");};
+  return <div>
+    <Card title="Conciliação PGDAS-D × Notas Fiscais" sub="Regime de competência · base vProd · uma única segregação no Anexo II"
+      right={<div className="row"><button className="btn btn-ghost" onClick={()=>exportar("csv")}>CSV</button><button className="btn" onClick={()=>exportar("xlsx")}>XLSX</button></div>}>
+      <div className="hint"><b>Segregação fixa:</b> {PGDAS_SEGREGACAO}. A receita apurada corresponde às vendas menos as devoluções da própria competência. Cancelamentos e movimentações FULL não entram.</div>
+      <div className="pgdas-config">
+        <label>Tolerância em R$<input className="input pgdas-input" inputMode="decimal" value={pgdasConfig.toleranciaReais} onChange={e=>setPgdasConfig(p=>({...p,toleranciaReais:e.target.value}))}/></label>
+        <label>Tolerância em %<input className="input pgdas-input" inputMode="decimal" value={pgdasConfig.toleranciaPercentual} onChange={e=>setPgdasConfig(p=>({...p,toleranciaPercentual:e.target.value.replace(",",".")}))}/></label>
+        <label>Fonte do RBT12<select className="select" value={pgdasConfig.fonteRbt12} onChange={e=>setPgdasConfig(p=>({...p,fonteRbt12:e.target.value}))}><option value="apurada">Receita apurada pelas notas</option><option value="declarada">Receita declarada no PGDAS-D</option></select></label>
+      </div>
+      <div className="pgdas-source"><b>Critério da tolerância:</b> será considerado o maior valor entre a tolerância em reais e o percentual aplicado sobre a receita apurada da competência.</div>
+    </Card>
+    <div className="pgdas-summary">
+      <Stat n={fmtBRL(dados.total.apurada)} l="Total apurado pelas notas"/>
+      <Stat n={fmtBRL(dados.total.declarada)} l="Total declarado preenchido"/>
+      <Stat n={fmtBRL(dados.total.diferenca)} l={dados.total.preenchida?"Diferença total":"Diferença parcial (há pendências)"} tone={dados.total.semaforo==="red"?"t-div":""}/>
+      <div className="stat"><div className="stat-n small"><SemaforoPgdas cor={dados.total.semaforo} status={dados.total.status}/></div><div className="stat-l">Situação do período</div><div className="stat-note">{dados.total.preenchida&&dados.total.diferencaPct!=null?`${dados.total.diferencaPct.toFixed(2)}% · `:""}{dados.total.risco}</div></div>
+    </div>
+    {dados.revendaItens>0&&<div className="pgdas-alert"><b>CFOP de revenda em operação de indústria: revisar emissão</b> — correto esperado: 5101/5105/6101/6105. Foram encontrados {fmtNum(dados.revendaItens)} item(ns), em {fmtNum(dados.revendaNotas)} nota(s), somando {fmtBRL(dados.revendaValor)}. O valor continua compondo a receita apurada.</div>}
+    <Card title="Conciliação por competência" sub={`${dados.linhas.length} competência(s) no período configurado`}>
+      <div className="scroll"><table className="table"><thead><tr><th>Competência</th><th className="r">Vendas</th><th className="r">Devoluções</th><th className="r">Apurada</th><th>Declarada no PGDAS-D</th><th className="r">Diferença R$</th><th className="r">Diferença %</th><th>Status / risco</th><th>CFOP revenda</th><th>Observação</th></tr></thead>
+      <tbody>{dados.linhas.map(x=><tr key={x.competencia} className={x.semaforo==="red"?"row-divergencia":""}>
+        <td><b>{fmtCompetencia(x.competencia)}</b></td><td className="r">{fmtBRL(x.vendas)}</td><td className="r">{fmtBRL(x.devolucoes)}</td><td className="r"><b>{fmtBRL(x.apurada)}</b></td>
+        <td><input aria-label={`Receita declarada ${x.competencia}`} className="input pgdas-input" inputMode="decimal" placeholder="0,00" value={pgdasValores[x.competencia]?.declarada??""} onChange={e=>alterar(x.competencia,"declarada",e.target.value)}/></td>
+        <td className="r">{x.preenchida?fmtBRL(x.diferenca):"—"}</td><td className="r">{x.preenchida?(x.diferencaPct==null?"N/A":`${x.diferencaPct.toFixed(2)}%`):"—"}</td>
+        <td><SemaforoPgdas cor={x.semaforo} status={x.status}/><div className="muted sm">{x.risco}</div><div className="muted sm">Tolerância: {fmtBRL(x.limite)}</div></td>
+        <td>{x.revendaItens?<div className="pgdas-alert"><b>{x.revendaItens} item(ns)</b><br/>{x.revendaNotasQtd} nota(s) · {fmtBRL(x.revendaValor)}</div>:<span className="muted">—</span>}</td>
+        <td><input aria-label={`Observação ${x.competencia}`} className="input pgdas-obs" value={pgdasValores[x.competencia]?.observacao??""} onChange={e=>alterar(x.competencia,"observacao",e.target.value)} placeholder="Registrar justificativa ou providência"/></td>
+      </tr>)}</tbody></table></div>
+    </Card>
+  </div>;
+}
+
 /* ---------- TAB: Evidências por XML ---------- */
 function Evidencias({notes,ctes,inutilizacoes,eventos,canceladas,config,targetDoc}){
   const [open,setOpen]=useState(null);
@@ -2121,7 +2230,7 @@ function Evidencias({notes,ctes,inutilizacoes,eventos,canceladas,config,targetDo
 function Resumo({dossie}){
   const {M,rows,config,targetDoc,competencia}=dossie;
   const [gerando,setGerando]=useState(false);
-  const txt=useMemo(()=>gerarResumo(M,rows,config,targetDoc,competencia,dossie.RBT12),[M,rows,config,targetDoc,competencia,dossie.RBT12]);
+  const txt=useMemo(()=>gerarResumo(M,rows,config,targetDoc,competencia,dossie.RBT12,dossie.conciliacaoPgdas,dossie.pgdasConfig),[M,rows,config,targetDoc,competencia,dossie.RBT12,dossie.conciliacaoPgdas,dossie.pgdasConfig]);
   const executar=fn=>{try{fn();}catch(e){alert(e.message||"Não foi possível gerar o arquivo.");}};
   async function pacote(){setGerando(true);try{await exportarPacoteDossie(dossie);}catch(e){alert(e.message||"Não foi possível gerar o pacote.");}finally{setGerando(false);}}
   return <div>
@@ -2133,7 +2242,7 @@ function Resumo({dossie}){
         <button className="btn btn-ghost" onClick={()=>executar(()=>exportarHtmlDossie(dossie))} disabled={gerando}>Relatório técnico HTML</button>
         <button className="btn btn-ghost" onClick={()=>exportarBackupProjeto(dossie)} disabled={gerando}>Backup restaurável JSON</button>
       </div>
-      <div className="status-line"><span>• 18 abas analíticas</span><span>• competência: {fmtCompetencia(competencia)}</span><span>• {fmtNum(dossie.notes.length)} NF-e/NFC-e no dossiê</span><span>• {fmtNum(dossie.ctes.length)} CT-e</span><span>• backup de todas as competências</span></div>
+      <div className="status-line"><span>• 19 abas analíticas</span><span>• competência: {fmtCompetencia(competencia)}</span><span>• conciliação PGDAS incluída</span><span>• {fmtNum(dossie.notes.length)} NF-e/NFC-e no dossiê</span><span>• {fmtNum(dossie.ctes.length)} CT-e</span><span>• backup de todas as competências</span></div>
     </Card>
     <Card title="Resumo executivo" sub="Linguagem consultiva · gerado automaticamente"
       right={<div className="row"><button className="btn btn-ghost" onClick={()=>download("resumo_executivo.txt",txt)}>Exportar TXT</button></div>}>
@@ -2141,7 +2250,7 @@ function Resumo({dossie}){
     </Card>
   </div>;
 }
-function gerarResumo(M,rows,config,targetDoc,competencia,RBT12){
+function gerarResumo(M,rows,config,targetDoc,competencia,RBT12,conciliacaoPgdas,pgdasConfig){
   const top=Object.entries(M.valorPorTipo).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([t,v])=>`   • ${t}: ${fmtBRL(v)}`).join("\n")||"   • (sem alertas com valor bruto associado)";
   const prods=[...rows].filter(r=>r.res.temAlerta).sort((a,b)=>b.it.vProd-a.it.vProd).slice(0,5).map(r=>`   • ${r.it.desc} (NCM ${r.it.ncm}) — ${fmtBRL(r.it.vProd)} — ${r.res.situacao}`).join("\n")||"   • (nenhum)";
   const ops=consolidarOperacoes(rows,targetDoc).slice(0,6).map(g=>`   • ${g.nome} — ${metaOperacao(g.classe).label} — ${g.documentos} doc(s) — ${fmtBRL(g.vProd)}`).join("\n")||"   • (nenhuma operação)";
@@ -2159,7 +2268,7 @@ Documento gerado por ferramenta de triagem — NÃO constitui parecer tributári
    Notas: ${M.notas} · Itens: ${M.itens} · Produtos únicos: ${M.produtos.size} · NCMs: ${M.ncms.size}
    Documentos únicos: ${M.documentosUnicos} · Linhas no log de importação: ${M.linhasLogImportacao}
    Fornecedores únicos (entradas): ${M.fornecedores.size} · Destinatários únicos (saídas): ${M.destinatarios.size} · UFs de origem: ${[...M.ufs].join(", ")||"—"}
-   RBT12 em todos os canais (${RBT12.inicio} a ${RBT12.fim}): ${fmtBRL(RBT12.valor)} · ${(RBT12.pctSublimite*100).toFixed(1)}% do sublimite · ${(RBT12.pctTeto*100).toFixed(1)}% do teto
+   RBT12 em todos os canais (${RBT12.inicio} a ${RBT12.fim}): ${fmtBRL(RBT12.valor)} · fonte: ${RBT12.fonte==="declarada"?"PGDAS-D declarado":"notas fiscais apuradas"} · ${(RBT12.pctSublimite*100).toFixed(1)}% do sublimite · ${(RBT12.pctTeto*100).toFixed(1)}% do teto
    Valor bruto dos itens analisados: ${fmtBRL(M.valor)}
    Documentos preservados, mas fora da análise: ${M.excluidas}
    Receita provável (vProd): ${M.vendas} documento(s) · ${fmtBRL(M.valorVendas)}
@@ -2171,17 +2280,27 @@ Documento gerado por ferramenta de triagem — NÃO constitui parecer tributári
    CT-es vinculados: ${M.ctes} · Valor das prestações: ${fmtBRL(M.valorFrete)}
    Inutilizações homologadas: ${M.inutilizacoes}
 
-2. RESUMO POR OPERAÇÃO (maiores valores)
+2. CONCILIAÇÃO PGDAS-D × NOTAS FISCAIS
+   Regime: competência pela data de emissão
+   Segregação: ${PGDAS_SEGREGACAO}
+   Total apurado: ${fmtBRL(conciliacaoPgdas.total.apurada)}
+   Total declarado preenchido: ${fmtBRL(conciliacaoPgdas.total.declarada)}
+   Diferença total${conciliacaoPgdas.total.preenchida?"":" parcial"}: ${fmtBRL(conciliacaoPgdas.total.diferenca)}${conciliacaoPgdas.total.preenchida?"":" — existem competências sem valor declarado"}
+   Status: ${conciliacaoPgdas.total.status} · ${conciliacaoPgdas.total.risco}
+   Tolerância: maior entre ${fmtBRL(parseMoedaBr(pgdasConfig.toleranciaReais))} e ${Number(pgdasConfig.toleranciaPercentual)||0}% da receita apurada
+   CFOPs 5106/6106 a revisar: ${conciliacaoPgdas.revendaItens} item(ns), ${conciliacaoPgdas.revendaNotas} nota(s), ${fmtBRL(conciliacaoPgdas.revendaValor)}
+
+3. RESUMO POR OPERAÇÃO (maiores valores)
 ${ops}
 
-3. RESUMO POR CFOP
+4. RESUMO POR CFOP
 ${cfops}
 
-4. SEQUÊNCIA FISCAL
+5. SEQUÊNCIA FISCAL
    Séries analisadas: ${M.gruposSequencia}
    Números sem documento, cancelamento ou inutilização homologada: ${M.lacunasSequencia}
 
-5. PRINCIPAIS ACHADOS
+6. PRINCIPAIS ACHADOS
    Possíveis produtos monofásicos (PIS/Cofins): ${M.mono}
    Possível alíquota zero: ${M.zero}
    Possível ICMS-ST em São Paulo: ${M.st}
@@ -2190,34 +2309,34 @@ ${cfops}
    Divergências de CST/CSOSN: ${M.cstDiv}
    Itens que exigem revisão manual: ${M.revisao}
 
-6. RISCOS DE PIS E COFINS
+7. RISCOS DE PIS E COFINS
    ${pisTxt}
 
-7. RISCOS DE ICMS-ST
+8. RISCOS DE ICMS-ST
    ${icmsTxt}
 
-8. OPORTUNIDADES TRIBUTÁRIAS
+9. OPORTUNIDADES TRIBUTÁRIAS
    ${opTxt}
 
-9. VALOR BRUTO DOS ITENS POR TIPO DE ALERTA (top; não representa imposto)
+10. VALOR BRUTO DOS ITENS POR TIPO DE ALERTA (top; não representa imposto)
 ${top}
 
-10. PRODUTOS DE MAIOR IMPACTO
+11. PRODUTOS DE MAIOR IMPACTO
 ${prods}
 
-11. DIVERGÊNCIAS CADASTRAIS
+12. DIVERGÊNCIAS CADASTRAIS
    Verificar NCMs fora da base vigente, CEST ausente/incompatível, e coerência CRT×CSOSN/CST.
 
-12. ITENS QUE EXIGEM VALIDAÇÃO MANUAL: ${M.revisao}
+13. ITENS QUE EXIGEM VALIDAÇÃO MANUAL: ${M.revisao}
 
-13. LIMITAÇÕES DA ANÁLISE
+14. LIMITAÇÕES DA ANÁLISE
    • Baseada exclusivamente nos XMLs importados e nas bases carregadas.
    • Não calcula ICMS-ST/426-A sem IVA-ST/PMPF por segmento (pendência condicional).
    • Correspondência por NCM+descrição é probabilística; conclusões dependem de revisão.
    • Regras aplicadas conforme a data de emissão de cada documento.
    • A sequência automática cobre do menor ao maior número encontrado; use os limites manuais para testar as bordas esperadas.
 
-14. BASES UTILIZADAS
+15. BASES UTILIZADAS
    NCM (${DB._meta.ncm}), TIPI (${DB._meta.tipi}), PIS/Cofins 4.3.10–4.3.17 (${DB._meta.pis_cofins}),
    ICMS-ST SP CAT 68 (${DB._meta.icms_sp}), Convênio 142 (${DB._meta.conv142}), CFOP, CRT/CSOSN/CST,
    Vigências SP e Motor de regras. Geradas em ${DB._meta.gerado}.
@@ -2372,7 +2491,7 @@ function VisaoGeral({M,RBT12,rows,notes,empresa,config,competencia,resumoMensal,
         <div className="hero-kpi"><b>{fmtNum(notes.length)}</b><span>NF-e/NFC-e analisadas</span></div><div className="hero-kpi"><b>{fmtNum(rows.length)}</b><span>Itens analisados</span></div>
         <div className="hero-kpi"><b>{fmtNum(M.ctes)}</b><span>CT-e vinculados</span></div><div className="hero-kpi"><b>{fmtNum(M.documentosUnicos)}</b><span>Documentos únicos</span></div><div className="hero-kpi"><b>{fmtNum(M.linhasLogImportacao)}</b><span>Linhas no log de importação</span></div>
       </div>
-      <div className="quick-actions"><button className="btn" onClick={()=>setTab("documentos")}>Importar documentos</button><button className="btn" onClick={()=>setTab("operacoes")}>Analisar operações e CFOP</button><button className="btn" onClick={()=>setTab("seq")}>Conferir sequência</button><button className="btn" onClick={()=>setTab("resumo")}>Abrir relatório</button></div>
+      <div className="quick-actions"><button className="btn" onClick={()=>setTab("documentos")}>Importar documentos</button><button className="btn" onClick={()=>setTab("pgdas")}>Conciliar PGDAS-D</button><button className="btn" onClick={()=>setTab("operacoes")}>Analisar operações e CFOP</button><button className="btn" onClick={()=>setTab("seq")}>Conferir sequência</button><button className="btn" onClick={()=>setTab("resumo")}>Abrir relatório</button></div>
     </Card>
     <div className="grid g4 sem-grid">
       <div className="stat kpi-primary good"><div className="stat-n">{fmtBRL(M.valorVendas)}</div><div className="stat-l">Receita provável</div><div className="stat-note">Soma de vProd classificada como venda</div></div>
@@ -2380,7 +2499,7 @@ function VisaoGeral({M,RBT12,rows,notes,empresa,config,competencia,resumoMensal,
       <div className="stat kpi-primary good"><div className="stat-n">{fmtBRL(M.saldoVendas)}</div><div className="stat-l">Receita provável líquida</div><div className="stat-note">Vendas menos devoluções</div></div>
       <div className="stat kpi-primary bad"><div className="stat-n">{fmtBRL(M.valorRevisar)}</div><div className="stat-l">Saídas a classificar</div><div className="stat-note">Não entram automaticamente como receita</div></div>
     </div>
-    <Card title="RBT12 — sublimite e teto do Simples" sub={`Receita bruta dos itens classificados como Venda, em todos os canais · ${RBT12.inicio} a ${RBT12.fim}`}>
+    <Card title="RBT12 — sublimite e teto do Simples" sub={`${RBT12.fonte==="declarada"?"Receita declarada no PGDAS-D":"Receita apurada pelas notas"}, em todos os canais · ${RBT12.inicio} a ${RBT12.fim}`}>
       {/* [FIX 1] Indicador consolidado, independente do marketplace atualmente filtrado. */}
       <div className="grid g4">
         <Stat n={fmtBRL(RBT12.valor)} l="RBT12 atual" tone={RBT12.nivel==="ok"?"":"t-div"}/>
@@ -2388,6 +2507,9 @@ function VisaoGeral({M,RBT12,rows,notes,empresa,config,competencia,resumoMensal,
         <Stat n={`${(RBT12.pctTeto*100).toFixed(1)}%`} l={`do teto (${fmtBRL(LIMITES_SIMPLES.teto)})`}/>
         <Stat n={RBT12.distTeto>=0?fmtBRL(RBT12.distTeto):`Excedido em ${fmtBRL(-RBT12.distTeto)}`} l="Distância até o teto" tone={RBT12.distTeto<0?"t-div":""}/>
       </div>
+      {/* [PGDAS] A fonte selecionada fica explícita no indicador e no dossiê. */}
+      <div className="pgdas-source"><b>Fonte em uso:</b> {RBT12.fonte==="declarada"?`PGDAS-D declarado (${RBT12.competenciasPreenchidas} competência(s) preenchida(s))`:"Notas fiscais classificadas como Venda"}. <button className="btn btn-ghost sm" onClick={()=>setTab("pgdas")}>Alterar na conciliação</button></div>
+      {RBT12.fonte==="declarada"&&RBT12.competenciasPreenchidas<12&&<div className="aviso-uf"><b>RBT12 declarado incompleto:</b> o indicador está somando apenas {RBT12.competenciasPreenchidas} competência(s) preenchida(s). Complete os 12 meses no módulo de conciliação antes de usar este valor para decisão.</div>}
       {RBT12.nivel!=="ok"?<div className="aviso-uf"><b>Atenção:</b> {RBT12.valor>=LIMITES_SIMPLES.teto?`o teto do Simples foi alcançado ou ultrapassado em ${fmtBRL(Math.max(0,-RBT12.distTeto))}.`:RBT12.valor>=LIMITES_SIMPLES.sublimiteIcmsIss?`o sublimite de ICMS/ISS foi alcançado ou ultrapassado; distância até o teto: ${fmtBRL(Math.max(0,RBT12.distTeto))}.`:`o RBT12 está a menos de 10% de pelo menos um limite. Faltam ${fmtBRL(Math.max(0,RBT12.distSublimite))} para o sublimite e ${fmtBRL(Math.max(0,RBT12.distTeto))} para o teto.`} Conferir os limites vigentes e os efeitos legais no período.</div>:<div className="ok-box">RBT12 abaixo da faixa preventiva de 90% dos dois limites.</div>}
     </Card>
     <Card title="Prioridades da conferência" sub="Comece pelos pontos que podem alterar a leitura do período">
